@@ -11,7 +11,7 @@ import { fetchTrending, fetchHomepage, type NormalizedContent } from "@/lib/api"
 
 // Cache configuration
 const CACHE_KEY = "handyflix_homepage_cache"
-const CACHE_VERSION = "1.1.0" // Increment this when website updates to invalidate cache
+const CACHE_VERSION = "1.2.0" // Increment this when website updates to invalidate cache
 const CACHE_EXPIRY_MS = 12 * 60 * 60 * 1000 // 12 hours
 
 interface HomepageCache {
@@ -28,12 +28,10 @@ function getCache(): HomepageCache | null {
     const cached = localStorage.getItem(CACHE_KEY)
     if (!cached) return null
     const data: HomepageCache = JSON.parse(cached)
-    // Check if cache version matches (invalidate on website update)
     if (data.version !== CACHE_VERSION) {
       localStorage.removeItem(CACHE_KEY)
       return null
     }
-    // Check if cache is expired (12 hours)
     if (Date.now() - data.timestamp > CACHE_EXPIRY_MS) {
       localStorage.removeItem(CACHE_KEY)
       return null
@@ -54,7 +52,7 @@ function setCache(data: Omit<HomepageCache, "timestamp" | "version">): void {
     }
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
   } catch {
-    // Ignore storage errors (e.g., quota exceeded)
+    // Ignore storage errors
   }
 }
 
@@ -69,10 +67,8 @@ export default function HomePage() {
     async function loadContent() {
       setIsLoading(true)
 
-      // Check cache first
       const cached = getCache()
       if (cached && cached.content.length > 0) {
-        console.log("[v0] Using cached homepage data")
         setContent(cached.content)
         setApiCategories(cached.categories)
         setPlatforms(cached.platforms)
@@ -80,11 +76,7 @@ export default function HomePage() {
         return
       }
 
-      // Fetch fresh data
       const [apiContent, homepageData] = await Promise.all([fetchTrending(), fetchHomepage()])
-
-      console.log("[v0] Homepage API categories count:", homepageData.categories.length)
-      console.log("[v0] Categories with content:", homepageData.categories.filter((cat) => cat.items.length > 0).length)
 
       if (homepageData.categories.length > 0) {
         setApiCategories(homepageData.categories)
@@ -96,15 +88,12 @@ export default function HomePage() {
 
       if (apiContent.length > 0) {
         setContent(apiContent)
-        // Cache the successful response
         setCache({
           content: apiContent,
           categories: homepageData.categories,
           platforms: homepageData.platforms,
         })
       }
-      // Note: If API fails (apiContent.length === 0), we keep content empty
-      // This prevents navigation to non-existent content with static IDs
       setIsLoading(false)
     }
     loadContent()
@@ -138,15 +127,35 @@ export default function HomePage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background relative">
+      {/* Ambient background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full opacity-30"
+          style={{
+            background: "radial-gradient(circle, oklch(0.62 0.25 25 / 0.08) 0%, transparent 70%)",
+            filter: "blur(100px)",
+            animation: "glow-pulse 8s ease-in-out infinite"
+          }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full opacity-20"
+          style={{
+            background: "radial-gradient(circle, oklch(0.50 0.20 30 / 0.06) 0%, transparent 70%)",
+            filter: "blur(80px)",
+            animation: "glow-pulse 10s ease-in-out infinite 2s"
+          }}
+        />
+      </div>
+
       <SplashScreen isLoading={isLoading} />
       <Navbar />
       <HeroSection content={heroContent} />
 
       <GenreRail selectedGenre={selectedGenre} onGenreChange={handleGenreChange} />
 
-      <div className="space-y-1 pb-10">
-        {/* Top 10 - Keep trending at the top */}
+      <div className="relative z-10 space-y-2 pb-12">
+        {/* Top 10 */}
         <PremiumCarousel title="Top 10 Today" items={topContent} variant="numbered" />
 
         {/* Show filtered content if genre selected, otherwise show all categories */}

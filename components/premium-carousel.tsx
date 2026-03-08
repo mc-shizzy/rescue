@@ -52,18 +52,24 @@ export const PremiumCarousel = memo(function PremiumCarousel({
   if (items.length === 0) return null
 
   return (
-    <section id={id} className="py-5">
+    <section id={id} className="py-6">
       <ContentPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
       <div className="mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-12">
         {/* Section header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div>
-            <h2 className="text-sm font-bold text-foreground tracking-wide flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors duration-200">
-              {title}
-              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-200" />
-            </h2>
-            <div className="section-title-line w-12 mt-1 transition-all duration-300 group-hover:w-20" />
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div 
+                className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full"
+                style={{ background: "linear-gradient(180deg, oklch(0.62 0.25 25) 0%, oklch(0.45 0.2 30) 100%)" }}
+              />
+              <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight flex items-center gap-3 group cursor-pointer hover:text-primary transition-colors duration-300">
+                {title}
+                <ChevronRight className="h-5 w-5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 text-primary transition-all duration-300" />
+              </h2>
+            </div>
           </div>
+          <span className="text-xs text-muted-foreground/50 font-medium">{items.length} titles</span>
         </div>
 
         {/* Carousel */}
@@ -72,16 +78,24 @@ export const PremiumCarousel = memo(function PremiumCarousel({
           <button
             onClick={() => scroll("left")}
             className={cn(
-              "absolute left-0 top-0 bottom-0 z-20 w-14 sm:w-20",
+              "absolute left-0 top-0 bottom-0 z-20 w-16 sm:w-24",
               "flex items-center justify-center",
-              "bg-gradient-to-r from-background via-background/80 to-transparent",
-              "opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300",
+              "bg-gradient-to-r from-background via-background/90 to-transparent",
+              "opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-400",
               !showLeftArrow && "!opacity-0 pointer-events-none",
             )}
             aria-label="Scroll left"
           >
-            <div className="glass w-9 h-9 rounded-full flex items-center justify-center hover:border-primary/40 hover:bg-primary/10 transition-all duration-200 hover:scale-110">
-              <ChevronLeft className="h-4 w-4" />
+            <div 
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+              style={{
+                background: "oklch(0.12 0.025 20 / 0.8)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid oklch(0.62 0.25 25 / 0.15)",
+                boxShadow: "0 4px 20px oklch(0 0 0 / 0.4)"
+              }}
+            >
+              <ChevronLeft className="h-5 w-5 text-foreground" />
             </div>
           </button>
 
@@ -89,16 +103,24 @@ export const PremiumCarousel = memo(function PremiumCarousel({
           <button
             onClick={() => scroll("right")}
             className={cn(
-              "absolute right-0 top-0 bottom-0 z-20 w-14 sm:w-20",
+              "absolute right-0 top-0 bottom-0 z-20 w-16 sm:w-24",
               "flex items-center justify-center",
-              "bg-gradient-to-l from-background via-background/80 to-transparent",
-              "opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300",
+              "bg-gradient-to-l from-background via-background/90 to-transparent",
+              "opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-400",
               !showRightArrow && "!opacity-0 pointer-events-none",
             )}
             aria-label="Scroll right"
           >
-            <div className="glass w-9 h-9 rounded-full flex items-center justify-center hover:border-primary/40 hover:bg-primary/10 transition-all duration-200 hover:scale-110">
-              <ChevronRight className="h-4 w-4" />
+            <div 
+              className="w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+              style={{
+                background: "oklch(0.12 0.025 20 / 0.8)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid oklch(0.62 0.25 25 / 0.15)",
+                boxShadow: "0 4px 20px oklch(0 0 0 / 0.4)"
+              }}
+            >
+              <ChevronRight className="h-5 w-5 text-foreground" />
             </div>
           </button>
 
@@ -106,7 +128,7 @@ export const PremiumCarousel = memo(function PremiumCarousel({
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth py-3"
+            className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth py-4"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {items.map((item, index) => (
@@ -139,7 +161,6 @@ const ContentCard = memo(function ContentCard({
     setInMyList(isInMyList(item.id))
   }, [item.id])
 
-  // Prefetch the route on hover so navigation is instant
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true)
     router.prefetch(detailUrl)
@@ -166,28 +187,44 @@ const ContentCard = memo(function ContentCard({
       >
         <div className="flex items-end">
           <span
-            className="text-[80px] sm:text-[100px] font-black leading-none select-none"
+            className="text-[90px] sm:text-[120px] font-black leading-none select-none transition-all duration-300 group-hover/card:scale-105"
             style={{
-              WebkitTextStroke: "2px oklch(0.58 0.22 245 / 0.2)",
+              WebkitTextStroke: "2px oklch(0.62 0.25 25 / 0.3)",
               color: "transparent",
-              marginRight: "-20px",
+              marginRight: "-24px",
               zIndex: 0,
+              textShadow: "0 0 40px oklch(0.62 0.25 25 / 0.1)"
             }}
           >
             {index + 1}
           </span>
-          <div className="relative w-[75px] sm:w-[90px] aspect-[2/3] rounded-xl overflow-hidden z-10 card-hover ring-1 ring-white/[0.08]">
+          <div 
+            className={cn(
+              "relative w-[85px] sm:w-[100px] aspect-[2/3] rounded-2xl overflow-hidden z-10 transition-all duration-400",
+              isHovered && "scale-105 glow-red-subtle"
+            )}
+            style={{
+              border: isHovered ? "1px solid oklch(0.62 0.25 25 / 0.3)" : "1px solid oklch(1 0 0 / 0.06)"
+            }}
+          >
             <Image
               src={item.poster || "/placeholder.svg"}
               alt={item.title}
               fill
               loading="lazy"
-              sizes="(max-width: 640px) 75px, 90px"
+              sizes="(max-width: 640px) 85px, 100px"
               className="object-cover"
             />
             {item.type === "series" && (
-              <div className="absolute top-1.5 left-1.5 glass-pill px-1.5 py-0.5 rounded-full text-[8px] font-bold text-primary">
-                S
+              <div 
+                className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold"
+                style={{ 
+                  background: "oklch(0.62 0.25 25 / 0.2)", 
+                  border: "1px solid oklch(0.62 0.25 25 / 0.4)",
+                  color: "oklch(0.75 0.2 25)"
+                }}
+              >
+                SERIES
               </div>
             )}
           </div>
@@ -196,7 +233,7 @@ const ContentCard = memo(function ContentCard({
     )
   }
 
-  const cardWidth = variant === "large" ? "w-[180px] sm:w-[220px]" : "w-[140px] sm:w-[165px]"
+  const cardWidth = variant === "large" ? "w-[200px] sm:w-[240px]" : "w-[150px] sm:w-[175px]"
 
   return (
     <div
@@ -207,24 +244,37 @@ const ContentCard = memo(function ContentCard({
     >
       <div
         className={cn(
-          "relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.07]",
-          "transition-all duration-350 ease-out shine-hover",
-          isHovered && "scale-105 shadow-2xl shadow-black/70 z-30 ring-primary/30",
-          isHovered && "shadow-[0_16px_48px_oklch(0_0_0/0.7),0_0_0_1px_oklch(0.58_0.22_245/0.2)]",
+          "relative aspect-[2/3] rounded-2xl overflow-hidden",
+          "transition-all duration-400 ease-out shine-hover",
+          isHovered && "scale-105 z-30",
         )}
+        style={{
+          border: isHovered ? "1px solid oklch(0.62 0.25 25 / 0.25)" : "1px solid oklch(1 0 0 / 0.05)",
+          boxShadow: isHovered 
+            ? "0 20px 60px oklch(0 0 0 / 0.7), 0 0 40px oklch(0.62 0.25 25 / 0.15), inset 0 1px 0 oklch(1 0 0 / 0.1)"
+            : "0 4px 20px oklch(0 0 0 / 0.3)"
+        }}
       >
         <Image
           src={item.poster || "/placeholder.svg"}
           alt={item.title}
           fill
           loading="lazy"
-          sizes={variant === "large" ? "(max-width: 640px) 180px, 220px" : "(max-width: 640px) 140px, 165px"}
+          sizes={variant === "large" ? "(max-width: 640px) 200px, 240px" : "(max-width: 640px) 150px, 175px"}
           className="object-cover"
         />
 
         {/* Series badge */}
         {item.type === "series" && !isHovered && (
-          <div className="absolute top-2 left-2 glass-pill px-1.5 py-0.5 rounded-full text-[8px] font-bold text-primary">
+          <div 
+            className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold"
+            style={{ 
+              background: "oklch(0.62 0.25 25 / 0.2)", 
+              backdropFilter: "blur(8px)",
+              border: "1px solid oklch(0.62 0.25 25 / 0.4)",
+              color: "oklch(0.75 0.2 25)"
+            }}
+          >
             SERIES
           </div>
         )}
@@ -232,47 +282,60 @@ const ContentCard = memo(function ContentCard({
         {/* Hover overlay */}
         <div
           className={cn(
-            "absolute inset-0 flex flex-col justify-end p-3",
-            "transition-all duration-300",
+            "absolute inset-0 flex flex-col justify-end p-4",
+            "transition-all duration-400",
             isHovered ? "opacity-100" : "opacity-0",
           )}
           style={{
             background: isHovered
-              ? "linear-gradient(to top, oklch(0.05 0.02 255 / 0.97) 0%, oklch(0.1 0.02 255 / 0.7) 50%, transparent 100%)"
+              ? "linear-gradient(to top, oklch(0.04 0.015 20 / 0.98) 0%, oklch(0.08 0.02 20 / 0.8) 50%, transparent 100%)"
               : "transparent",
           }}
         >
           {/* Actions */}
-          <div className="flex items-center gap-1.5 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <button
-              className="w-8 h-8 rounded-full bg-foreground hover:bg-foreground/90 flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-lg"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.62 0.25 25) 0%, oklch(0.52 0.22 30) 100%)",
+                boxShadow: "0 4px 15px oklch(0.62 0.25 25 / 0.5)"
+              }}
               aria-label="Play"
               onClick={(e) => { e.stopPropagation(); onCardClick(item) }}
             >
-              <Play className="h-3.5 w-3.5 fill-background text-background" />
+              <Play className="h-4 w-4 fill-white text-white ml-0.5" />
             </button>
             <button
               onClick={handleToggleList}
               className={cn(
-                "w-8 h-8 rounded-full glass flex items-center justify-center transition-all duration-200 hover:scale-110",
-                inMyList ? "border-primary/60 bg-primary/20 text-primary" : "hover:border-primary/40 hover:bg-primary/10",
+                "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110",
               )}
+              style={{
+                background: inMyList ? "oklch(0.62 0.25 25 / 0.2)" : "oklch(0.15 0.02 20 / 0.8)",
+                border: inMyList ? "1px solid oklch(0.62 0.25 25 / 0.5)" : "1px solid oklch(1 0 0 / 0.1)",
+                backdropFilter: "blur(10px)"
+              }}
               aria-label={inMyList ? "Remove from list" : "Add to list"}
             >
-              {inMyList ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {inMyList ? <Check className="h-4 w-4 text-primary" /> : <Plus className="h-4 w-4 text-foreground/80" />}
             </button>
           </div>
 
           {/* Info */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              <span className="text-green-400 text-[10px] font-semibold">98%</span>
-              <span className="glass-pill px-1 py-0.5 rounded text-[8px] text-muted-foreground">HD</span>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-green-400 text-[11px] font-bold">98% Match</span>
+              <span 
+                className="px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                style={{ background: "oklch(1 0 0 / 0.08)", color: "oklch(0.7 0 0)" }}
+              >
+                HD
+              </span>
             </div>
-            <div className="flex items-center gap-1 text-[10px] text-white/70 flex-wrap">
+            <div className="flex items-center gap-1.5 text-[11px] text-foreground/60 flex-wrap">
               {item.genre.slice(0, 2).map((g, i) => (
-                <span key={g} className="flex items-center gap-1">
-                  {i > 0 && <span className="w-0.5 h-0.5 bg-white/40 rounded-full" />}
+                <span key={g} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="w-1 h-1 bg-primary/50 rounded-full" />}
                   {g}
                 </span>
               ))}
@@ -282,9 +345,13 @@ const ContentCard = memo(function ContentCard({
       </div>
 
       {/* Title */}
-      <h3 className="mt-2 text-xs font-medium truncate text-muted-foreground group-hover/card:text-foreground transition-colors duration-200">
+      <h3 className="mt-3 text-sm font-semibold truncate text-muted-foreground group-hover/card:text-foreground transition-colors duration-300">
         {item.title}
       </h3>
+      {/* Year */}
+      <p className="text-xs text-muted-foreground/50 mt-0.5">
+        {item.releaseDate?.split("-")[0]}
+      </p>
     </div>
   )
 })
