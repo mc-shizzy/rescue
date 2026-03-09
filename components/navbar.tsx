@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
@@ -82,14 +82,11 @@ function AppComingSoonModal({ onClose }: { onClose: () => void }) {
 }
 
 export function Navbar() {
-  const [showAppModal, setShowAppModal]   = useState(false)
-  const [searchOpen, setSearchOpen]       = useState(false)
-  const [searchQuery, setSearchQuery]     = useState("")
+  const [showAppModal, setShowAppModal]     = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled]           = useState(false)
-  const router                            = useRouter()
-  const pathname                          = usePathname()
-  const searchInputRef                    = useRef<HTMLInputElement>(null)
+  const [scrolled, setScrolled]             = useState(false)
+  const router                              = useRouter()
+  const pathname                            = usePathname()
 
   /* ── scroll detection ── */
   useEffect(() => {
@@ -98,78 +95,22 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  /* ── search focus ── */
-  useEffect(() => {
-    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 60)
-    else setSearchQuery("")
-  }, [searchOpen])
-
   /* ── keyboard shortcuts ── */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setSearchOpen((v) => !v) }
-      if (e.key === "Escape") { setSearchOpen(false); setMobileMenuOpen(false) }
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); router.push("/search") }
+      if (e.key === "Escape") { setMobileMenuOpen(false) }
     }
     window.addEventListener("keydown", handler)
     return () => window.removeEventListener("keydown", handler)
-  }, [])
+  }, [router])
 
   /* ── close mobile menu on route change ── */
   useEffect(() => { setMobileMenuOpen(false) }, [pathname])
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
-      setSearchOpen(false)
-    }
-  }
-
   return (
     <>
-      {showAppModal && <AppComingSoonModal onClose={() => setShowAppModal(false)} />}
-
-      {/* ── Search overlay ── */}
-      <div
-        className={cn(
-          "fixed inset-0 z-[200] flex items-start justify-center pt-24 px-4 transition-all duration-300",
-          searchOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-        )}
-        onClick={() => setSearchOpen(false)}
-      >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-        <form
-          onSubmit={handleSearchSubmit}
-          onClick={(e) => e.stopPropagation()}
-          className="relative z-10 w-full max-w-xl flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-          style={{
-            background: "oklch(0.13 0.025 255 / 0.98)",
-            backdropFilter: "blur(40px)",
-            border: "1px solid oklch(0.7 0.05 240 / 0.18)",
-            boxShadow: "0 20px 60px oklch(0 0 0 / 0.6), inset 0 1px 0 oklch(1 0 0 / 0.08)",
-          }}
-        >
-          <Search className="h-4 w-4 text-primary shrink-0" />
-          <input
-            ref={searchInputRef}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search movies, series, genres..."
-            className="flex-1 bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground/50 outline-none"
-          />
-          <kbd className="hidden sm:flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] text-muted-foreground/50 font-mono"
-            style={{ border: "1px solid oklch(0.7 0.05 240 / 0.12)" }}>
-            ESC
-          </kbd>
-          <button
-            type="button"
-            onClick={() => setSearchOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-white/[0.08] transition-colors text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </form>
-      </div>
+      {showAppModal && <AppComingSoonModal onClose={() => setShowAppModal(false)} />
 
       {/* ── Mobile menu overlay ── */}
       <div
@@ -215,13 +156,14 @@ export function Navbar() {
 
           <div className="my-1 mx-3 h-px" style={{ background: "oklch(0.7 0.05 240 / 0.08)" }} />
 
-          <button
-            onClick={() => { setSearchOpen(true); setMobileMenuOpen(false) }}
+          <Link
+            href="/search"
+            onClick={() => setMobileMenuOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-muted-foreground hover:text-foreground hover:bg-white/[0.06] transition-all duration-200"
           >
             <Search className="h-4 w-4 shrink-0" />
             Search
-          </button>
+          </Link>
 
           <button
             onClick={() => { setShowAppModal(true); setMobileMenuOpen(false) }}
@@ -276,7 +218,8 @@ export function Navbar() {
                   <span className="text-primary">HANDY</span>
                   <span className="text-foreground">FLIX</span>
                 </span>
-                <span className="text-[9px] text-muted-foreground/45 tracking-wide font-medium leading-none hidden sm:block">
+                <span className="text-[9px] tracking-wide font-semibold leading-none hidden sm:block"
+                  style={{ color: "oklch(0.58 0.22 245 / 0.55)" }}>
                   by Andy Mrlit &amp; Infos Partage
                 </span>
               </div>
@@ -332,9 +275,9 @@ export function Navbar() {
             {/* ── Right: Actions ── */}
             <div className="flex items-center gap-2">
 
-              {/* Search button */}
-              <button
-                onClick={() => setSearchOpen(true)}
+              {/* Search button — navigates to /search */}
+              <Link
+                href="/search"
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/[0.07] transition-all duration-200"
                 aria-label="Search"
               >
@@ -346,7 +289,7 @@ export function Navbar() {
                 >
                   ⌘K
                 </kbd>
-              </button>
+              </Link>
 
               {/* Get App CTA — desktop */}
               <button
