@@ -165,12 +165,12 @@ export function Navbar() {
             Search
           </Link>
 
+          {/* Download App button — HIDDEN FOR NOW
           <button
             onClick={() => { setShowAppModal(true); setMobileMenuOpen(false) }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
             style={{ color: "oklch(0.58 0.22 245)" }}
           >
-            {/* Android robot SVG icon */}
             <svg
               viewBox="0 0 24 24"
               className="h-4 w-4 shrink-0"
@@ -181,6 +181,7 @@ export function Navbar() {
             </svg>
             Download App
           </button>
+          */}
         </nav>
       </div>
 
@@ -299,7 +300,7 @@ export function Navbar() {
                 </kbd>
               </Link>
 
-              {/* Download App CTA — all screen sizes, Android logo */}
+              {/* Download App CTA — HIDDEN FOR NOW
               <button
                 onClick={() => setShowAppModal(true)}
                 className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-[1.03] active:scale-95"
@@ -311,7 +312,6 @@ export function Navbar() {
                 }}
                 aria-label="Download Android App"
               >
-                {/* Android robot SVG icon */}
                 <svg
                   viewBox="0 0 24 24"
                   className="h-3.5 w-3.5 shrink-0"
@@ -323,6 +323,7 @@ export function Navbar() {
                 <span className="hidden xs:inline sm:inline">Download</span>
                 <span className="xs:hidden sm:hidden">App</span>
               </button>
+              */}
 
               {/* Hamburger — mobile */}
               <button
