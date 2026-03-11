@@ -165,23 +165,19 @@ export function Navbar() {
             Search
           </Link>
 
-          {/* Download App button — HIDDEN FOR NOW
-          <button
-            onClick={() => { setShowAppModal(true); setMobileMenuOpen(false) }}
+          {/* Download App — mobile menu */}
+          <a
+            href="https://github.com/mc-shizzy/Apkhandy-/releases/download/V2.0/HandyFlix.apk"
+            download
+            onClick={() => setMobileMenuOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
             style={{ color: "oklch(0.58 0.22 245)" }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4 w-4 shrink-0"
-              fill="currentColor"
-              aria-hidden="true"
-            >
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden="true">
               <path d="M17.523 15.341a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m-11.046 0a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m11.4-6.177l1.716-2.972a.356.356 0 0 0-.131-.486.356.356 0 0 0-.486.131l-1.74 3.015A10.29 10.29 0 0 0 12 8.25c-1.527 0-2.968.344-4.236.952L6.024 6.187a.356.356 0 0 0-.486-.131.356.356 0 0 0-.131.486l1.716 2.972C4.968 10.71 3.5 12.704 3.5 15h17c0-2.296-1.468-4.29-3.623-5.836" />
             </svg>
             Download App
-          </button>
-          */}
+          </a>
         </nav>
       </div>
 
@@ -300,9 +296,10 @@ export function Navbar() {
                 </kbd>
               </Link>
 
-              {/* Download App CTA — HIDDEN FOR NOW
-              <button
-                onClick={() => setShowAppModal(true)}
+              {/* Download App CTA — Android only */}
+              <a
+                href="https://github.com/mc-shizzy/Apkhandy-/releases/download/V2.0/HandyFlix.apk"
+                download
                 className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-[1.03] active:scale-95"
                 style={{
                   background: "oklch(0.58 0.22 245 / 0.14)",
@@ -312,18 +309,11 @@ export function Navbar() {
                 }}
                 aria-label="Download Android App"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-3.5 w-3.5 shrink-0"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="currentColor" aria-hidden="true">
                   <path d="M17.523 15.341a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m-11.046 0a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m11.4-6.177l1.716-2.972a.356.356 0 0 0-.131-.486.356.356 0 0 0-.486.131l-1.74 3.015A10.29 10.29 0 0 0 12 8.25c-1.527 0-2.968.344-4.236.952L6.024 6.187a.356.356 0 0 0-.486-.131.356.356 0 0 0-.131.486l1.716 2.972C4.968 10.71 3.5 12.704 3.5 15h17c0-2.296-1.468-4.29-3.623-5.836" />
                 </svg>
-                <span className="hidden xs:inline sm:inline">Download</span>
-                <span className="xs:hidden sm:hidden">App</span>
-              </button>
-              */}
+                <span>Download</span>
+              </a>
 
               {/* Hamburger — mobile */}
               <button

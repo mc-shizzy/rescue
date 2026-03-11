@@ -111,30 +111,31 @@ export function WelcomeModal({ show }: WelcomeModalProps) {
 
           {/* Download App button — only for Android */}
           {deviceType === "android" ? (
-            <>
-              <button
-                className="w-full py-3.5 rounded-2xl text-sm font-bold text-white relative overflow-hidden group"
+            <a
+              href="https://github.com/mc-shizzy/Apkhandy-/releases/download/V2.0/HandyFlix.apk"
+              download
+              onClick={handleClose}
+              className="w-full py-3.5 rounded-2xl text-sm font-bold text-white relative overflow-hidden flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150"
+              style={{
+                background: "linear-gradient(135deg, oklch(0.5 0.18 245) 0%, oklch(0.45 0.2 260) 100%)",
+                boxShadow: "0 8px 32px oklch(0.5 0.2 250 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.15)",
+              }}
+            >
+              {/* Android icon */}
+              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden="true">
+                <path d="M17.523 15.341a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m-11.046 0a.86.86 0 0 1-.862-.862.86.86 0 0 1 .862-.862.86.86 0 0 1 .862.862.86.86 0 0 1-.862.862m11.4-6.177l1.716-2.972a.356.356 0 0 0-.131-.486.356.356 0 0 0-.486.131l-1.74 3.015A10.29 10.29 0 0 0 12 8.25c-1.527 0-2.968.344-4.236.952L6.024 6.187a.356.356 0 0 0-.486-.131.356.356 0 0 0-.131.486l1.716 2.972C4.968 10.71 3.5 12.704 3.5 15h17c0-2.296-1.468-4.29-3.623-5.836" />
+              </svg>
+              Download for Android
+              {/* Shimmer */}
+              <span
+                className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{
-                  background: "linear-gradient(135deg, oklch(0.5 0.18 245) 0%, oklch(0.45 0.2 260) 100%)",
-                  boxShadow: "0 8px 32px oklch(0.5 0.2 250 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.15)",
+                  background: "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.4) 50%, transparent 100%)",
+                  backgroundSize: "200% 100%",
+                  animation: "shimmer 2s linear infinite",
                 }}
-                disabled
-              >
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  <Download className="h-4 w-4" />
-                  App Coming Soon
-                </span>
-                {/* Shimmer effect */}
-                <div
-                  className="absolute inset-0 opacity-30"
-                  style={{
-                    background: "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.3) 50%, transparent 100%)",
-                    backgroundSize: "200% 100%",
-                    animation: "shimmer 2s linear infinite",
-                  }}
-                />
-              </button>
-            </>
+              />
+            </a>
           ) : (
             <div
               className="w-full py-4 px-4 rounded-2xl text-center"

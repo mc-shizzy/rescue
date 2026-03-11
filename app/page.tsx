@@ -151,7 +151,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-background">
       <SplashScreen isLoading={isLoading} />
-      {/* <WelcomeModal show={splashComplete} /> */}
+      <WelcomeModal show={splashComplete} />
       <Navbar />
       <HeroSection content={heroContent} />
 
