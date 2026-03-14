@@ -16,6 +16,7 @@ export function WelcomeModal({ show }: WelcomeModalProps) {
   const [visible, setVisible] = useState(false)
   const [closing, setClosing] = useState(false)
   const [deviceType, setDeviceType] = useState<DeviceType>("other")
+  const [downloadCount, setDownloadCount] = useState<number | null>(null)
 
   useEffect(() => {
     if (!show) return
@@ -32,6 +33,12 @@ export function WelcomeModal({ show }: WelcomeModalProps) {
     } else {
       setDeviceType("other")
     }
+    
+    // Fetch download count
+    fetch("/api/download-stats")
+      .then((res) => res.json())
+      .then((data) => setDownloadCount(data.downloads))
+      .catch(() => setDownloadCount(0))
     
     // Small delay after splash screen ends
     const timer = setTimeout(() => setVisible(true), 400)
@@ -108,6 +115,23 @@ export function WelcomeModal({ show }: WelcomeModalProps) {
               </p>
             </div>
           </div>
+
+          {/* Download counter */}
+          {downloadCount !== null && downloadCount > 0 && (
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+                style={{
+                  background: "oklch(0.45 0.15 145 / 0.15)",
+                  color: "oklch(0.7 0.15 145)",
+                  border: "1px solid oklch(0.5 0.15 145 / 0.25)",
+                }}
+              >
+                <Download className="h-3 w-3" />
+                <span>{downloadCount.toLocaleString()}+ downloads</span>
+              </div>
+            </div>
+          )}
 
           {/* Download App button — only for Android */}
           {deviceType === "android" ? (
