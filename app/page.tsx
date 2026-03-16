@@ -8,6 +8,7 @@ import { HeroSection } from "@/components/hero-section"
 import { GenreRail } from "@/components/genre-rail"
 import { PremiumCarousel } from "@/components/premium-carousel"
 import { Footer } from "@/components/footer"
+import { WhatsAppFloatingButton } from "@/components/whatsapp-floating-button"
 import { fetchTrending, fetchHomepage, type NormalizedContent } from "@/lib/api"
 
 // Cache configuration
@@ -194,5 +195,6 @@ export default function HomePage() {
 
       <Footer />
     </main>
+    <WhatsAppFloatingButton />
   )
 }

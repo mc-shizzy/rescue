@@ -2,7 +2,6 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Inter, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
-import { WhatsAppFloatingButton } from "@/components/whatsapp-floating-button"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"] })
@@ -231,7 +230,6 @@ export default function RootLayout({
       </head>
       <body className={`font-sans antialiased`}>
         {children}
-        <WhatsAppFloatingButton />
         {/* Adsterra Social Bar */}
         <script async src="https://wayanatomyunavailable.com/7b/df/c9/7bdfc9c3bd15887176bd1cee393e65a4.js" />
         <Analytics />
