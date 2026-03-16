@@ -1027,9 +1027,6 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Ad Overlay */}
-      <VideoAdOverlay />
-
       {/* Loading Indicator (initial load) */}
       {!isReady && !hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-50 gap-4">
