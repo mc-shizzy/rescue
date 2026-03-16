@@ -4,7 +4,6 @@ import { X, ChevronRight, Loader2, Settings, Check, Play, Pause, Volume2, Volume
 import { cn } from "@/lib/utils"
 import ReactPlayer from "react-player"
 import type { OnProgressProps } from "react-player/base"
-import { VideoAdOverlay } from "@/components/video-ad-overlay"
 
 export interface SubtitleTrack {
   id: string
