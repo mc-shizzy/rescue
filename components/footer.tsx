@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Facebook, Twitter, Instagram, Youtube, Heart, Sparkles } from "lucide-react"
+import { Facebook, Twitter, Instagram, Youtube, Heart, Sparkles, MessageCircle } from "lucide-react"
 
 export function Footer() {
   return (
@@ -40,12 +40,16 @@ export function Footer() {
                 { Icon: Twitter, label: "Twitter", href: "#" },
                 { Icon: Instagram, label: "Instagram", href: "#" },
                 { Icon: Youtube, label: "YouTube", href: "#" },
-              ].map(({ Icon, label, href }) => (
+                { Icon: MessageCircle, label: "WhatsApp Community", href: "https://whatsapp.com/channel/0029Vb7KseUKGGGOTKZv1A0G", isWhatsApp: true },
+              ].map(({ Icon, label, href, isWhatsApp }) => (
                 <a
                   key={label}
                   href={href}
+                  target={isWhatsApp ? "_blank" : undefined}
+                  rel={isWhatsApp ? "noopener noreferrer" : undefined}
                   className="glass p-2.5 rounded-full text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/10 transition-all duration-200 hover:scale-110"
                   aria-label={label}
+                  style={isWhatsApp ? { color: "oklch(0.7 0.18 155 / 0.9)" } : {}}
                 >
                   <Icon className="h-4 w-4" />
                 </a>
