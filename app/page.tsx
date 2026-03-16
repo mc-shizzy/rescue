@@ -8,6 +8,7 @@ import { HeroSection } from "@/components/hero-section"
 import { GenreRail } from "@/components/genre-rail"
 import { PremiumCarousel } from "@/components/premium-carousel"
 import { Footer } from "@/components/footer"
+import { WhatsAppFloatingButton } from "@/components/whatsapp-floating-button"
 import { fetchTrending, fetchHomepage, type NormalizedContent } from "@/lib/api"
 
 // Cache configuration
@@ -149,50 +150,53 @@ export default function HomePage() {
   }, [isLoading])
 
   return (
-    <main className="min-h-screen bg-background">
-      <SplashScreen isLoading={isLoading} />
-      <WelcomeModal show={splashComplete} />
-      <Navbar />
-      <HeroSection content={heroContent} />
+    <>
+      <main className="min-h-screen bg-background">
+        <SplashScreen isLoading={isLoading} />
+        <WelcomeModal show={splashComplete} />
+        <Navbar />
+        <HeroSection content={heroContent} />
 
-      <GenreRail selectedGenre={selectedGenre} onGenreChange={handleGenreChange} />
+        <GenreRail selectedGenre={selectedGenre} onGenreChange={handleGenreChange} />
 
-      <div className="space-y-1 pb-10">
-        {/* Top 10 - Keep trending at the top */}
-        <PremiumCarousel title="Top 10 Today" items={topContent} variant="numbered" />
+        <div className="space-y-1 pb-10">
+          {/* Top 10 - Keep trending at the top */}
+          <PremiumCarousel title="Top 10 Today" items={topContent} variant="numbered" />
 
-        {/* Show filtered content if genre selected, otherwise show all categories */}
-        {selectedGenre !== "All" ? (
-          <PremiumCarousel title={`${selectedGenre} Collection`} items={filteredContent} variant="large" />
-        ) : (
-          <>
-            {apiCategories.map((category) => 
-              category.items.length > 0 ? (
-                <PremiumCarousel key={category.title} title={category.title} items={category.items} />
-              ) : null
-            )}
+          {/* Show filtered content if genre selected, otherwise show all categories */}
+          {selectedGenre !== "All" ? (
+            <PremiumCarousel title={`${selectedGenre} Collection`} items={filteredContent} variant="large" />
+          ) : (
+            <>
+              {apiCategories.map((category) => 
+                category.items.length > 0 ? (
+                  <PremiumCarousel key={category.title} title={category.title} items={category.items} />
+                ) : null
+              )}
 
-            {/* Trending section as fallback */}
-            {apiCategories.length === 0 && <PremiumCarousel id="trending" title="Trending Now" items={content} />}
+              {/* Trending section as fallback */}
+              {apiCategories.length === 0 && <PremiumCarousel id="trending" title="Trending Now" items={content} />}
 
-            {apiCategories.length === 0 && (
-              <>
-                {series.length > 0 && <PremiumCarousel title="TV Series" items={series} variant="large" />}
-                {movies.length > 0 && <PremiumCarousel title="Movies" items={movies} />}
-                {actionContent.length > 0 && <PremiumCarousel title="Action & Adventure" items={actionContent} />}
-                {dramaContent.length > 0 && <PremiumCarousel title="Drama" items={dramaContent} />}
-                {comedyContent.length > 0 && <PremiumCarousel title="Comedy" items={comedyContent} />}
-                {horrorContent.length > 0 && <PremiumCarousel title="Horror" items={horrorContent} />}
-                {romanceContent.length > 0 && <PremiumCarousel title="Romance" items={romanceContent} />}
-                {thrillerContent.length > 0 && <PremiumCarousel title="Thriller" items={thrillerContent} />}
-                {sciFiContent.length > 0 && <PremiumCarousel title="Sci-Fi & Fantasy" items={sciFiContent} />}
-              </>
-            )}
-          </>
-        )}
-      </div>
+              {apiCategories.length === 0 && (
+                <>
+                  {series.length > 0 && <PremiumCarousel title="TV Series" items={series} variant="large" />}
+                  {movies.length > 0 && <PremiumCarousel title="Movies" items={movies} />}
+                  {actionContent.length > 0 && <PremiumCarousel title="Action & Adventure" items={actionContent} />}
+                  {dramaContent.length > 0 && <PremiumCarousel title="Drama" items={dramaContent} />}
+                  {comedyContent.length > 0 && <PremiumCarousel title="Comedy" items={comedyContent} />}
+                  {horrorContent.length > 0 && <PremiumCarousel title="Horror" items={horrorContent} />}
+                  {romanceContent.length > 0 && <PremiumCarousel title="Romance" items={romanceContent} />}
+                  {thrillerContent.length > 0 && <PremiumCarousel title="Thriller" items={thrillerContent} />}
+                  {sciFiContent.length > 0 && <PremiumCarousel title="Sci-Fi & Fantasy" items={sciFiContent} />}
+                </>
+              )}
+            </>
+          )}
+        </div>
 
-      <Footer />
-    </main>
+        <Footer />
+      </main>
+      <WhatsAppFloatingButton />
+    </>
   )
 }

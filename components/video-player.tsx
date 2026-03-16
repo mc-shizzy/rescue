@@ -4,7 +4,6 @@ import { X, ChevronRight, Loader2, Settings, Check, Play, Pause, Volume2, Volume
 import { cn } from "@/lib/utils"
 import ReactPlayer from "react-player"
 import type { OnProgressProps } from "react-player/base"
-import { VideoAdOverlay } from "@/components/video-ad-overlay"
 
 export interface SubtitleTrack {
   id: string
@@ -70,6 +69,21 @@ export function VideoPlayer({
   const [seekTime, setSeekTime] = useState<number | null>(null)
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false)
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [doubleTapSide, setDoubleTapSide] = useState<"left" | "right" | null>(null)
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false)
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 })
+  const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || "ontouchstart" in window)
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   // Get default quality (middle quality for balance)
   const getDefaultQuality = useCallback(() => {
@@ -308,39 +322,72 @@ export function VideoPlayer({
     }
   }, [isSeeking, calculateSeekPosition])
 
-  // Global touch handlers for seeking (mirror mouse behavior)
-  useEffect(() => {
-    if (!isSeeking) return
-
-    const handleTouchMoveGlobal = (e: TouchEvent) => {
-      const touch = e.touches[0]
-      if (!touch) return
-      const percentage = calculateSeekPosition(touch.clientX)
-      if (percentage !== null && playerRef.current) {
-        playerRef.current.seekTo(percentage, "fraction")
-      }
-    }
-
-    const handleTouchEndGlobal = () => {
-      setIsSeeking(false)
-    }
-
-    window.addEventListener("touchmove", handleTouchMoveGlobal)
-    window.addEventListener("touchend", handleTouchEndGlobal)
-    window.addEventListener("touchcancel", handleTouchEndGlobal)
-
-    return () => {
-      window.removeEventListener("touchmove", handleTouchMoveGlobal)
-      window.removeEventListener("touchend", handleTouchEndGlobal)
-      window.removeEventListener("touchcancel", handleTouchEndGlobal)
-    }
-  }, [isSeeking, calculateSeekPosition])
   // Skip forward/backward
   const handleSkip = useCallback((seconds: number) => {
     if (!playerRef.current) return
     const newTime = Math.max(0, Math.min(duration, currentTime + seconds))
     playerRef.current.seekTo(newTime, "seconds")
   }, [currentTime, duration])
+
+  // Handle tap on mobile:
+  // - single tap  → show/hide controls
+  // - double tap  → seek -10s (left) or +10s (right)
+  const handleTap = useCallback((e: React.MouseEvent) => {
+    if (!isMobile) {
+      // Desktop: simple click to play/pause
+      setIsPlaying((p) => !p)
+      return
+    }
+
+    const now = Date.now()
+    const clientX = e.clientX
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const timeDiff = now - lastTapRef.current.time
+    const isDoubleTap = timeDiff < 300
+
+    if (isDoubleTap) {
+      // Cancel the pending single-tap action
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current)
+        singleTapTimerRef.current = null
+      }
+      // Seek left or right
+      const isLeftSide = clientX < rect.left + rect.width / 2
+      handleSkip(isLeftSide ? -10 : 10)
+      setDoubleTapSide(isLeftSide ? "left" : "right")
+      setTimeout(() => setDoubleTapSide(null), 600)
+      // Reset so a 3rd tap doesn't re-trigger double tap
+      lastTapRef.current = { time: 0, x: 0 }
+    } else {
+      // Record this tap and wait to see if a second tap comes
+      lastTapRef.current = { time: now, x: clientX }
+      singleTapTimerRef.current = setTimeout(() => {
+        // No second tap arrived — it's a real single tap: toggle controls
+        setShowControls((prev) => {
+          const newState = !prev
+          // If showing controls, reset the auto-hide timer
+          if (newState) {
+            if (hideControlsTimeout.current) {
+              clearTimeout(hideControlsTimeout.current)
+            }
+            hideControlsTimeout.current = setTimeout(() => {
+              if (isPlaying) {
+                setShowControls(false)
+                setShowQualityMenu(false)
+                setShowPlaybackMenu(false)
+                setShowSubtitleMenu(false)
+                setShowSettingsPanel(false)
+              }
+            }, 4000) // 4 seconds on mobile for more time to interact
+          }
+          return newState
+        })
+        singleTapTimerRef.current = null
+      }, 300)
+    }
+  }, [isMobile, handleSkip, isPlaying])
 
   // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
@@ -429,12 +476,11 @@ export function VideoPlayer({
     return () => clearTimeout(timer)
   }, [])
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
-      if (hideControlsTimeout.current) {
-        clearTimeout(hideControlsTimeout.current)
-      }
+      if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current)
     }
   }, [])
 
@@ -499,174 +545,330 @@ export function VideoPlayer({
         )}
       </div>
 
-      {/* Click to play/pause overlay */}
+      {/* Click/tap overlay — single tap toggles controls (mobile), click plays/pauses (desktop), double tap seeks (mobile) */}
       <div
         className="absolute inset-0 z-10"
-        onClick={() => setIsPlaying((p) => !p)}
+        onClick={handleTap}
       />
+
+      {/* Double-tap seek indicator */}
+      {doubleTapSide && (
+        <div
+          className={cn(
+            "absolute top-1/2 -translate-y-1/2 z-30 flex items-center justify-center pointer-events-none",
+            doubleTapSide === "left" ? "left-[15%]" : "right-[15%]"
+          )}
+        >
+          <div className="flex flex-col items-center gap-1 animate-pulse">
+            <div className="flex items-center gap-0.5">
+              {doubleTapSide === "left" ? (
+                <>
+                  <SkipBack className="h-8 w-8 text-white" />
+                  <SkipBack className="h-8 w-8 text-white/50" />
+                </>
+              ) : (
+                <>
+                  <SkipForward className="h-8 w-8 text-white/50" />
+                  <SkipForward className="h-8 w-8 text-white" />
+                </>
+              )}
+            </div>
+            <span className="text-white text-sm font-bold">10s</span>
+          </div>
+        </div>
+      )}
 
       {/* Top Header Controls */}
       <div
         className={cn(
-          "absolute top-0 left-0 right-0 z-[100] flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-4 pb-16 px-4 transition-opacity duration-300",
+          "absolute top-0 left-0 right-0 z-[100] flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-3 sm:pt-4 pb-12 sm:pb-16 px-3 sm:px-4 transition-opacity duration-300",
           showControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
           {onClose && (
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-              <X className="h-6 w-6 text-white" />
+            <button onClick={onClose} className="p-2 sm:p-2.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0">
+              <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </button>
           )}
-          <h2 className="text-lg font-medium text-white truncate max-w-[60vw]">{title}</h2>
+          <h2 className="text-sm sm:text-lg font-medium text-white truncate">{title}</h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Subtitles Menu */}
-          {subtitles.length > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowSubtitleMenu(!showSubtitleMenu)
-                  setShowQualityMenu(false)
-                  setShowPlaybackMenu(false)
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                <span className="text-sm text-white font-medium">CC</span>
-              </button>
-
-              {showSubtitleMenu && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
-                  <div className="py-1 max-h-60 overflow-y-auto">
-                    <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
-                      Subtitles
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedSubtitle(null)
-                        setShowSubtitleMenu(false)
-                      }}
-                      className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
-                    >
-                      <span className="text-sm text-white">Off</span>
-                      {selectedSubtitle === null && <Check className="h-4 w-4 text-primary" />}
-                    </button>
-                    {subtitles.map((sub) => (
-                      <button
-                        key={sub.id}
-                        onClick={() => {
-                          setSelectedSubtitle(sub.id)
-                          setShowSubtitleMenu(false)
-                        }}
-                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
-                      >
-                        <span className="text-sm text-white">{sub.label}</span>
-                        {selectedSubtitle === sub.id && <Check className="h-4 w-4 text-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Desktop: individual buttons | Mobile: single settings button */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* Mobile: Single settings button */}
+          {isMobile && (
+            <button
+              onClick={() => setShowSettingsPanel(true)}
+              className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <Settings className="h-5 w-5 text-white" />
+            </button>
           )}
 
-          {/* Playback Speed Menu */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowPlaybackMenu(!showPlaybackMenu)
-                setShowQualityMenu(false)
-                setShowSubtitleMenu(false)
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <span className="text-sm text-white font-medium">{playbackRate}x</span>
-            </button>
+          {/* Desktop: Individual menu buttons */}
+          {!isMobile && (
+            <>
+              {/* Subtitles Menu */}
+              {subtitles.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setShowSubtitleMenu(!showSubtitleMenu)
+                      setShowQualityMenu(false)
+                      setShowPlaybackMenu(false)
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    <span className="text-sm text-white font-medium">CC</span>
+                  </button>
 
-            {showPlaybackMenu && (
-              <div className="absolute top-full right-0 mt-2 w-32 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
-                <div className="py-1">
-                  <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
-                    Speed
+                  {showSubtitleMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-48 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
+                      <div className="py-1 max-h-60 overflow-y-auto">
+                        <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
+                          Subtitles
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSelectedSubtitle(null)
+                            setShowSubtitleMenu(false)
+                          }}
+                          className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                        >
+                          <span className="text-sm text-white">Off</span>
+                          {selectedSubtitle === null && <Check className="h-4 w-4 text-primary" />}
+                        </button>
+                        {subtitles.map((sub) => (
+                          <button
+                            key={sub.id}
+                            onClick={() => {
+                              setSelectedSubtitle(sub.id)
+                              setShowSubtitleMenu(false)
+                            }}
+                            className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                          >
+                            <span className="text-sm text-white">{sub.label}</span>
+                            {selectedSubtitle === sub.id && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Playback Speed Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowPlaybackMenu(!showPlaybackMenu)
+                    setShowQualityMenu(false)
+                    setShowSubtitleMenu(false)
+                  }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                >
+                  <span className="text-sm text-white font-medium">{playbackRate}x</span>
+                </button>
+
+                {showPlaybackMenu && (
+                  <div className="absolute top-full right-0 mt-2 w-32 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
+                    <div className="py-1">
+                      <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
+                        Speed
+                      </div>
+                      {playbackRates.map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={() => {
+                            setPlaybackRate(rate)
+                            setShowPlaybackMenu(false)
+                          }}
+                          className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                        >
+                          <span className="text-sm text-white">{rate}x</span>
+                          {playbackRate === rate && <Check className="h-4 w-4 text-primary" />}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {playbackRates.map((rate) => (
+                )}
+              </div>
+
+              {/* Quality Selector */}
+              {sources.length > 1 && (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setShowQualityMenu(!showQualityMenu)
+                      setShowPlaybackMenu(false)
+                      setShowSubtitleMenu(false)
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-white" />
+                    <span className="text-sm text-white font-medium">{selectedQuality}</span>
+                  </button>
+
+                  {showQualityMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-40 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
+                      <div className="py-1">
+                        <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
+                          Quality
+                        </div>
+                        {sources.map((source) => (
+                          <button
+                            key={source.quality}
+                            onClick={() => handleQualityChange(source.quality)}
+                            className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                          >
+                            <span className="text-sm text-white">{source.quality}</span>
+                            {selectedQuality === source.quality && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Settings Panel (Bottom Sheet) */}
+      {isMobile && showSettingsPanel && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center"
+          onClick={() => setShowSettingsPanel(false)}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative w-full max-h-[70vh] overflow-y-auto rounded-t-3xl p-4 pb-8 animate-in slide-in-from-bottom duration-300"
+            style={{
+              background: "oklch(0.12 0.03 255 / 0.98)",
+              backdropFilter: "blur(32px)",
+              border: "1px solid oklch(0.7 0.05 240 / 0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+            
+            <h3 className="text-lg font-bold text-white mb-4">Settings</h3>
+            
+            {/* Quality Section */}
+            {sources.length > 1 && (
+              <div className="mb-4">
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Quality</p>
+                <div className="flex flex-wrap gap-2">
+                  {sources.map((source) => (
                     <button
-                      key={rate}
-                      onClick={() => {
-                        setPlaybackRate(rate)
-                        setShowPlaybackMenu(false)
-                      }}
-                      className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
+                      key={source.quality}
+                      onClick={() => { handleQualityChange(source.quality); setShowSettingsPanel(false) }}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                        selectedQuality === source.quality
+                          ? "bg-primary text-white"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      )}
                     >
-                      <span className="text-sm text-white">{rate}x</span>
-                      {playbackRate === rate && <Check className="h-4 w-4 text-primary" />}
+                      {source.quality}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Playback Speed Section */}
+            <div className="mb-4">
+              <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Playback Speed</p>
+              <div className="flex flex-wrap gap-2">
+                {playbackRates.map((rate) => (
+                  <button
+                    key={rate}
+                    onClick={() => { setPlaybackRate(rate); setShowSettingsPanel(false) }}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      playbackRate === rate
+                        ? "bg-primary text-white"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                    )}
+                  >
+                    {rate}x
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Subtitles Section */}
+            {subtitles.length > 0 && (
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Subtitles</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { setSelectedSubtitle(null); setShowSettingsPanel(false) }}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      selectedSubtitle === null
+                        ? "bg-primary text-white"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                    )}
+                  >
+                    Off
+                  </button>
+                  {subtitles.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => { setSelectedSubtitle(sub.id); setShowSettingsPanel(false) }}
+                      className={cn(
+                        "px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                        selectedSubtitle === sub.id
+                          ? "bg-primary text-white"
+                          : "bg-white/10 text-white hover:bg-white/20"
+                      )}
+                    >
+                      {sub.label}
                     </button>
                   ))}
                 </div>
               </div>
             )}
           </div>
-
-          {/* Quality Selector */}
-          {sources.length > 1 && (
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowQualityMenu(!showQualityMenu)
-                  setShowPlaybackMenu(false)
-                  setShowSubtitleMenu(false)
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                <Settings className="h-4 w-4 text-white" />
-                <span className="text-sm text-white font-medium">{selectedQuality}</span>
-              </button>
-
-              {showQualityMenu && (
-                <div className="absolute top-full right-0 mt-2 w-40 bg-neutral-900/95 backdrop-blur-xl rounded-lg border border-white/10 shadow-2xl overflow-hidden z-[150]">
-                  <div className="py-1">
-                    <div className="px-4 py-2 text-xs text-white/50 font-medium uppercase tracking-wider border-b border-white/10">
-                      Quality
-                    </div>
-                    {sources.map((source) => (
-                      <button
-                        key={source.quality}
-                        onClick={() => handleQualityChange(source.quality)}
-                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/10 transition-colors"
-                      >
-                        <span className="text-sm text-white">{source.quality}</span>
-                        {selectedQuality === source.quality && <Check className="h-4 w-4 text-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Bottom Controls */}
       <div
         className={cn(
-          "absolute bottom-0 left-0 right-0 z-[100] bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-4 px-4 transition-opacity duration-300",
+          "absolute bottom-0 left-0 right-0 z-[100] bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 sm:pt-16 pb-3 sm:pb-4 px-3 sm:px-4 transition-opacity duration-300",
           showControls ? "opacity-100" : "opacity-0 pointer-events-none",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Progress Bar - wrapper for larger click/touch area */}
+        {/* Time display above progress bar on mobile */}
+        {isMobile && (
+          <div className="flex items-center justify-between text-xs text-white/80 mb-1 px-0.5">
+            <span className="font-medium tabular-nums">{formatTime(currentTime)}</span>
+            <span className="font-medium tabular-nums">{formatTime(duration)}</span>
+          </div>
+        )}
+
+        {/* Progress Bar - larger touch target on mobile */}
         <div
           ref={progressRef}
-          className="relative py-3 cursor-pointer mb-2 group"
+          className={cn(
+            "relative cursor-pointer group",
+            isMobile ? "py-4 mb-1" : "py-3 mb-2"
+          )}
           onMouseDown={handleSeekMouseDown}
           onTouchStart={handleTouchStart}
         >
           {/* Visual progress bar */}
           <div className={cn(
             "relative bg-white/20 rounded-full transition-all",
-            isSeeking ? "h-2" : "h-1.5 group-hover:h-2"
+            isSeeking ? "h-2.5" : isMobile ? "h-2" : "h-1.5 group-hover:h-2"
           )}>
             {/* Loaded progress */}
             <div
@@ -678,120 +880,131 @@ export function VideoPlayer({
               className="absolute top-0 left-0 h-full bg-primary rounded-full"
               style={{ width: `${played * 100}%` }}
             />
-            {/* Seek handle - always visible */}
+            {/* Seek handle - larger on mobile */}
             <div
               className={cn(
-                "absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-transform border-2 border-primary",
+                "absolute top-1/2 -translate-y-1/2 bg-white rounded-full shadow-lg transition-transform border-2 border-primary",
+                isMobile ? "w-5 h-5" : "w-4 h-4",
                 isSeeking ? "scale-125" : "scale-100 group-hover:scale-110"
               )}
-              style={{ left: `calc(${played * 100}% - 8px)` }}
+              style={{ left: `calc(${played * 100}% - ${isMobile ? 10 : 8}px)` }}
             />
           </div>
         </div>
 
         {/* Control Buttons */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Play/Pause */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Play/Pause - larger touch target */}
             <button
               onClick={() => setIsPlaying((p) => !p)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2 sm:p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
             >
               {isPlaying ? (
-                <Pause className="h-7 w-7 text-white fill-white" />
+                <Pause className="h-6 w-6 sm:h-7 sm:w-7 text-white fill-white" />
               ) : (
-                <Play className="h-7 w-7 text-white fill-white" />
+                <Play className="h-6 w-6 sm:h-7 sm:w-7 text-white fill-white" />
               )}
             </button>
 
-            {/* Skip Backward */}
+            {/* Skip buttons - hidden on very small mobile, visible on larger */}
             <button
               onClick={() => handleSkip(-10)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors hidden xs:flex"
             >
               <SkipBack className="h-5 w-5 text-white" />
             </button>
 
-            {/* Skip Forward */}
             <button
               onClick={() => handleSkip(10)}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors hidden xs:flex"
             >
               <SkipForward className="h-5 w-5 text-white" />
             </button>
 
-            {/* Volume */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsMuted((m) => !m)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors"
-              >
-                {isMuted || volume === 0 ? (
-                  <VolumeX className="h-5 w-5 text-white" />
-                ) : (
-                  <Volume2 className="h-5 w-5 text-white" />
-                )}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  setVolume(parseFloat(e.target.value))
-                  setIsMuted(false)
-                }}
-                className="w-20 h-1 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-              />
-            </div>
+            {/* Volume - hide on mobile (use device volume) */}
+            {!isMobile && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMuted((m) => !m)}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="h-5 w-5 text-white" />
+                  ) : (
+                    <Volume2 className="h-5 w-5 text-white" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    setVolume(parseFloat(e.target.value))
+                    setIsMuted(false)
+                  }}
+                  className="w-20 h-1 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                />
+              </div>
+            )}
 
-            {/* Time Display */}
-            <span className="text-white text-sm font-medium ml-2">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
+            {/* Time Display - hidden on mobile (shown above progress bar) */}
+            {!isMobile && (
+              <span className="text-white text-sm font-medium ml-2 tabular-nums">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            )}
           </div>
 
           {/* Right Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}
-              className="p-2 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
             >
               {isFullscreen ? (
-                <Minimize className="h-5 w-5 text-white" />
+                <Minimize className="h-5 w-5 sm:h-5 sm:w-5 text-white" />
               ) : (
-                <Maximize className="h-5 w-5 text-white" />
+                <Maximize className="h-5 w-5 sm:h-5 sm:w-5 text-white" />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Next Episode Button */}
+      {/* Next Episode Button - responsive positioning */}
       {showNextEpisode && nextEpisode && (
         <div
           className={cn(
-            "absolute bottom-24 right-4 z-[100] transition-all duration-300",
+            "absolute z-[100] transition-all duration-300",
+            isMobile ? "bottom-28 right-3 left-3" : "bottom-24 right-4",
             showControls ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4",
           )}
         >
           <button
             onClick={nextEpisode.onPlay}
-            className="flex items-center gap-2 px-5 py-3 bg-white text-black text-sm font-semibold rounded-md hover:bg-white/90 transition-all shadow-lg hover:scale-105"
+            className={cn(
+              "flex items-center justify-center gap-2 bg-white text-black font-semibold rounded-xl hover:bg-white/90 transition-all shadow-lg hover:scale-105 active:scale-95",
+              isMobile ? "w-full px-4 py-3 text-sm" : "px-5 py-3 text-sm"
+            )}
           >
-            <span>Next: {nextEpisode.title}</span>
-            <ChevronRight className="h-5 w-5" />
+            <span className="truncate">Next: {nextEpisode.title}</span>
+            <ChevronRight className="h-5 w-5 flex-shrink-0" />
           </button>
         </div>
       )}
 
-      {/* Center Play Button (when paused) */}
+      {/* Center Play Button (when paused) - responsive size */}
       {!isPlaying && !isBuffering && !hasError && isReady && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="w-20 h-20 rounded-full bg-primary/90 flex items-center justify-center shadow-2xl">
-            <Play className="h-10 w-10 text-white fill-white ml-1" />
+          <div className={cn(
+            "rounded-full bg-primary/90 flex items-center justify-center shadow-2xl",
+            isMobile ? "w-16 h-16" : "w-20 h-20"
+          )}>
+            <Play className={cn("text-white fill-white ml-1", isMobile ? "h-8 w-8" : "h-10 w-10")} />
           </div>
         </div>
       )}
@@ -831,9 +1044,6 @@ export function VideoPlayer({
           </div>
         </div>
       )}
-
-      {/* Ad Overlay */}
-      <VideoAdOverlay />
 
       {/* Loading Indicator (initial load) */}
       {!isReady && !hasError && (
