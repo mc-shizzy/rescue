@@ -7,373 +7,292 @@ interface SplashScreenProps {
   isLoading?: boolean
 }
 
-// Deterministic pseudo-random particles to avoid hydration mismatch
-const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
-  id: i,
-  left: ((i * 73 + 17) % 97),
-  top: ((i * 37 + 53) % 100),
-  size: ((i * 11 + 3) % 3) + 2,
-  delay: ((i * 0.23) % 4),
-  duration: ((i * 0.31) % 3) + 3,
-}))
-
-const RINGS = [0, 1, 2]
-
 export function SplashScreen({ isLoading = false }: SplashScreenProps) {
-  // Phase tracking
   const [phase, setPhase] = useState<
-    "bars-in" | "bars-out" | "logo-in" | "brand" | "tagline" | "progress" | "exiting" | "done"
-  >("bars-in")
+    "init" | "reveal" | "logo" | "brand" | "ready" | "exit" | "done"
+  >("init")
   const [minTimeElapsed, setMinTimeElapsed] = useState(false)
   const [progress, setProgress] = useState(0)
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Phase choreography — pure timing
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("bars-out"),   400)   // bars slide in fast
-    const t2 = setTimeout(() => setPhase("logo-in"),    900)   // bars retract, logo enters
-    const t3 = setTimeout(() => setPhase("brand"),      1300)  // text reveal
-    const t4 = setTimeout(() => setPhase("tagline"),    1900)  // tagline rises
-    const t5 = setTimeout(() => setPhase("progress"),   2200)  // progress bar
-    const t6 = setTimeout(() => setMinTimeElapsed(true), 2600) // min time gate
-    return () => [t1, t2, t3, t4, t5, t6].forEach(clearTimeout)
+    const t0 = setTimeout(() => setPhase("reveal"), 100)
+    const t1 = setTimeout(() => setPhase("logo"), 600)
+    const t2 = setTimeout(() => setPhase("brand"), 1200)
+    const t3 = setTimeout(() => setPhase("ready"), 2000)
+    const t4 = setTimeout(() => setMinTimeElapsed(true), 2800)
+    return () => [t0, t1, t2, t3, t4].forEach(clearTimeout)
   }, [])
 
-  // Progress bar animation
   useEffect(() => {
-    if (phase !== "progress") return
+    if (phase !== "ready") return
     if (progressRef.current) clearInterval(progressRef.current)
     progressRef.current = setInterval(() => {
       setProgress((p) => {
-        if (isLoading && p >= 80) return p
+        if (isLoading && p >= 85) return p
         if (!isLoading && p >= 100) { clearInterval(progressRef.current!); return 100 }
-        return p + (isLoading ? Math.random() * 6 : Math.random() * 14 + 6)
+        return p + (isLoading ? Math.random() * 5 + 1 : Math.random() * 12 + 8)
       })
-    }, 100)
+    }, 80)
     return () => { if (progressRef.current) clearInterval(progressRef.current) }
   }, [phase, isLoading])
 
-  // Exit when loading done + min time elapsed
   useEffect(() => {
-    if (!isLoading && minTimeElapsed && phase === "progress") {
+    if (!isLoading && minTimeElapsed && phase === "ready") {
       setProgress(100)
-      const t = setTimeout(() => setPhase("exiting"), 300)
+      const t = setTimeout(() => setPhase("exit"), 400)
       return () => clearTimeout(t)
     }
   }, [isLoading, minTimeElapsed, phase])
 
   useEffect(() => {
-    if (phase === "exiting") {
-      const t = setTimeout(() => setPhase("done"), 700)
+    if (phase === "exit") {
+      const t = setTimeout(() => setPhase("done"), 800)
       return () => clearTimeout(t)
     }
   }, [phase])
 
   if (phase === "done") return null
 
-  const isExiting = phase === "exiting"
-  const showLogo   = ["logo-in","brand","tagline","progress","exiting"].includes(phase)
-  const showBrand  = ["brand","tagline","progress","exiting"].includes(phase)
-  const showTagline= ["tagline","progress","exiting"].includes(phase)
-  const showProgress = ["progress","exiting"].includes(phase)
-  const barsIn     = phase === "bars-in"
-  const barsOut    = phase === "bars-out" || showLogo
+  const isAfter = (target: string) => {
+    const order = ["init", "reveal", "logo", "brand", "ready", "exit"]
+    return order.indexOf(phase) >= order.indexOf(target)
+  }
 
   return (
     <div
-      className="fixed inset-0 z-[300] overflow-hidden"
+      className="fixed inset-0 z-[300] flex items-center justify-center overflow-hidden"
       style={{
-        background: "oklch(0.05 0.015 265)",
-        animation: isExiting ? "splash-exit 0.7s cubic-bezier(0.4,0,0.2,1) forwards" : undefined,
+        background: "#050510",
+        opacity: phase === "exit" ? 0 : 1,
+        transition: phase === "exit" ? "opacity 0.8s cubic-bezier(0.4,0,0.2,1)" : undefined,
       }}
     >
-      {/* ---- Grain/noise texture overlay ---- */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse 80% 60% at 50% 45%, oklch(0.15 0.12 250 / 0.5) 0%, transparent 70%)",
+        }}
+      />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse 50% 40% at 30% 60%, oklch(0.12 0.08 280 / 0.3) 0%, transparent 70%)",
+        }}
+      />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse 40% 35% at 75% 35%, oklch(0.12 0.06 220 / 0.25) 0%, transparent 70%)",
+        }}
+      />
+
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "128px",
-          opacity: 0.5,
-          animation: "noise-drift 0.15s steps(2) infinite",
-          mixBlendMode: "overlay",
+          opacity: phase === "init" ? 1 : 0,
+          transition: "opacity 1.5s ease",
+          background: "#050510",
         }}
       />
 
-      {/* ---- Deep ambient light pools ---- */}
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: "70vw", height: "70vw",
-          top: "50%", left: "50%",
-          transform: "translate(-50%, -50%)",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, oklch(0.35 0.18 245 / 0.22) 0%, transparent 65%)",
-          filter: "blur(80px)",
-          animation: "glow-pulse 5s ease-in-out infinite",
-        }}
-      />
-      <div
-        className="absolute pointer-events-none"
-        style={{
-          width: "50vw", height: "50vw",
-          bottom: "-10%", right: "-5%",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, oklch(0.3 0.12 270 / 0.15) 0%, transparent 65%)",
-          filter: "blur(60px)",
-          animation: "glow-pulse 7s ease-in-out infinite 1.5s",
-        }}
-      />
-
-      {/* ---- Floating particles ---- */}
-      {PARTICLES.map((p) => (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          key={p.id}
-          className="absolute rounded-full pointer-events-none"
           style={{
-            left: `${p.left}%`,
-            top: `${p.top}%`,
-            width: p.size,
-            height: p.size,
-            background: "oklch(0.65 0.18 245)",
-            opacity: 0,
-            animation: `particle-float ${p.duration}s ease-in-out ${p.delay}s infinite`,
-            boxShadow: `0 0 ${p.size * 3}px oklch(0.65 0.18 245 / 0.8)`,
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: isAfter("logo") ? "200vmax" : "0px",
+            height: isAfter("logo") ? "200vmax" : "0px",
+            borderRadius: "50%",
+            transform: "translate(-50%, -50%)",
+            border: "1px solid oklch(0.4 0.15 245 / 0.08)",
+            transition: "width 2.5s cubic-bezier(0.16,1,0.3,1), height 2.5s cubic-bezier(0.16,1,0.3,1)",
           }}
         />
-      ))}
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: isAfter("logo") ? "150vmax" : "0px",
+            height: isAfter("logo") ? "150vmax" : "0px",
+            borderRadius: "50%",
+            transform: "translate(-50%, -50%)",
+            border: "1px solid oklch(0.4 0.15 245 / 0.05)",
+            transition: "width 2s cubic-bezier(0.16,1,0.3,1) 0.2s, height 2s cubic-bezier(0.16,1,0.3,1) 0.2s",
+          }}
+        />
+      </div>
 
-      {/* ---- Scan line sweep ---- */}
-      <div
-        className="absolute inset-x-0 pointer-events-none"
-        style={{
-          height: "2px",
-          background: "linear-gradient(90deg, transparent, oklch(0.65 0.18 245 / 0.25), transparent)",
-          animation: "scanline 4s linear infinite",
-          top: 0,
-        }}
-      />
-
-      {/* ---- Letterbox bars (cinema effect) ---- */}
-      {/* Top bar */}
-      <div
-        className="absolute inset-x-0 top-0 z-10 pointer-events-none"
-        style={{
-          height: "14%",
-          background: "oklch(0.04 0.01 260)",
-          animation: barsIn
-            ? "bar-top-in 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards"
-            : barsOut
-            ? "bar-top-out 0.5s cubic-bezier(0.55,0,1,0.45) forwards"
-            : undefined,
-          transform: barsIn ? "translateY(-100%)" : barsOut ? "translateY(0)" : "translateY(-100%)",
-        }}
-      />
-      {/* Bottom bar */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-10 pointer-events-none"
-        style={{
-          height: "14%",
-          background: "oklch(0.04 0.01 260)",
-          animation: barsIn
-            ? "bar-bottom-in 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards"
-            : barsOut
-            ? "bar-bottom-out 0.5s cubic-bezier(0.55,0,1,0.45) forwards"
-            : undefined,
-          transform: barsIn ? "translateY(100%)" : barsOut ? "translateY(0)" : "translateY(100%)",
-        }}
-      />
-
-      {/* ---- Center stage ---- */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0">
-
-        {/* Logo icon + expanding rings */}
-        {showLogo && (
-          <div className="relative flex items-center justify-center mb-6">
-            {/* Expanding concentric rings */}
-            {RINGS.map((r) => (
-              <div
-                key={r}
-                className="absolute rounded-full pointer-events-none border"
-                style={{
-                  width: 90,
-                  height: 90,
-                  borderColor: "oklch(0.58 0.22 245 / 0.4)",
-                  animation: `ring-expand 2s cubic-bezier(0.2,0.6,0.4,1) ${r * 0.5}s infinite`,
-                }}
-              />
-            ))}
-
-            {/* Bloom glow behind logo */}
-            <div
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: 140,
-                height: 140,
-                background: "radial-gradient(circle, oklch(0.58 0.22 245 / 0.55) 0%, transparent 70%)",
-                filter: "blur(30px)",
-                animation: "bloom-in 0.8s cubic-bezier(0.2,0,0,1) forwards",
-              }}
-            />
-
-            {/* Logo image */}
-            <div
-              className="relative z-10 rounded-2xl overflow-hidden"
-              style={{
-                animation: "logo-drop 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards",
-                boxShadow: "0 0 40px oklch(0.58 0.22 245 / 0.5), 0 0 0 1px oklch(0.7 0.1 240 / 0.2)",
-              }}
-            >
-              <Image
-                src="/hf-logo.png"
-                alt="HANDYFLIX"
-                width={76}
-                height={76}
-                priority
-                className="rounded-2xl"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Brand wordmark */}
-        {showBrand && (
+      <div className="relative z-10 flex flex-col items-center">
+        <div
+          className="relative mb-8"
+          style={{
+            opacity: isAfter("logo") ? 1 : 0,
+            transform: isAfter("logo") ? "translateY(0) scale(1)" : "translateY(20px) scale(0.85)",
+            transition: "all 0.9s cubic-bezier(0.34,1.56,0.64,1)",
+          }}
+        >
           <div
-            className="flex items-baseline gap-0 select-none"
-            style={{ lineHeight: 1 }}
-          >
-            {/* HANDY — left-to-right clip reveal */}
-            <span
-              className="font-black tracking-tighter"
-              style={{
-                fontSize: "clamp(3rem, 10vw, 6rem)",
-                color: "oklch(0.58 0.22 245)",
-                animation: "text-reveal-ltr 0.7s cubic-bezier(0.4,0,0.2,1) forwards",
-                clipPath: "inset(0 100% 0 0)",
-                textShadow: "0 0 60px oklch(0.58 0.22 245 / 0.6)",
-                letterSpacing: "-0.05em",
-                display: "inline-block",
-              }}
-            >
-              HANDY
-            </span>
-
-            {/* FLIX — snap in from right */}
-            <span
-              className="font-black"
-              style={{
-                fontSize: "clamp(3rem, 10vw, 6rem)",
-                color: "oklch(0.97 0.005 240)",
-                animation: "flix-snap 0.5s cubic-bezier(0.34,1.2,0.64,1) 0.5s both",
-                opacity: 0,
-                letterSpacing: "-0.06em",
-                display: "inline-block",
-              }}
-            >
-              FLIX
-            </span>
-          </div>
-        )}
-
-        {/* Tagline */}
-        {showTagline && (
-          <p
-            className="font-sans"
+            className="absolute inset-0 rounded-3xl"
             style={{
-              fontSize: "clamp(0.65rem, 1.5vw, 0.8rem)",
-              letterSpacing: "0.3em",
-              color: "oklch(0.55 0.04 250)",
+              background: "oklch(0.58 0.22 245 / 0.4)",
+              filter: "blur(40px)",
+              transform: "scale(1.8)",
+              animation: isAfter("logo") ? "sp-glow 3s ease-in-out infinite" : undefined,
+            }}
+          />
+
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{
+              boxShadow: "0 0 0 1px oklch(0.5 0.15 245 / 0.3), 0 20px 60px oklch(0.2 0.15 250 / 0.5)",
+            }}
+          >
+            <Image
+              src="/hf-logo.png"
+              alt="HANDYFLIX"
+              width={80}
+              height={80}
+              priority
+              className="rounded-2xl"
+            />
+          </div>
+        </div>
+
+        <div
+          className="flex items-baseline select-none overflow-hidden"
+          style={{
+            opacity: isAfter("brand") ? 1 : 0,
+            transition: "opacity 0.6s ease 0.1s",
+          }}
+        >
+          <span
+            className="font-black"
+            style={{
+              fontSize: "clamp(2.8rem, 9vw, 5.5rem)",
+              letterSpacing: "-0.05em",
+              color: "oklch(0.58 0.22 245)",
+              textShadow: "0 0 80px oklch(0.58 0.22 245 / 0.5), 0 0 30px oklch(0.58 0.22 245 / 0.3)",
+              transform: isAfter("brand") ? "translateY(0)" : "translateY(100%)",
+              transition: "transform 0.8s cubic-bezier(0.16,1,0.3,1)",
+              display: "inline-block",
+            }}
+          >
+            HANDY
+          </span>
+          <span
+            className="font-black"
+            style={{
+              fontSize: "clamp(2.8rem, 9vw, 5.5rem)",
+              letterSpacing: "-0.06em",
+              color: "oklch(0.97 0.005 240)",
+              textShadow: "0 0 40px oklch(1 0 0 / 0.15)",
+              transform: isAfter("brand") ? "translateY(0)" : "translateY(100%)",
+              transition: "transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.12s",
+              display: "inline-block",
+            }}
+          >
+            FLIX
+          </span>
+        </div>
+
+        <div
+          className="overflow-hidden mt-3"
+          style={{
+            opacity: isAfter("brand") ? 1 : 0,
+            transition: "opacity 0.5s ease 0.5s",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "clamp(0.6rem, 1.3vw, 0.75rem)",
+              letterSpacing: "0.35em",
+              color: "oklch(0.45 0.04 250)",
               textTransform: "uppercase",
-              marginTop: "0.75rem",
-              animation: "tagline-up 0.6s cubic-bezier(0.2,0,0,1) forwards",
+              fontWeight: 500,
+              transform: isAfter("brand") ? "translateY(0)" : "translateY(100%)",
+              transition: "transform 0.7s cubic-bezier(0.16,1,0.3,1) 0.6s",
             }}
           >
             Watch Without Limits
           </p>
-        )}
+        </div>
 
-        {/* Progress bar */}
-        {showProgress && (
+        <div
+          style={{
+            marginTop: "2.5rem",
+            width: "clamp(160px, 28vw, 240px)",
+            opacity: isAfter("ready") ? 1 : 0,
+            transform: isAfter("ready") ? "translateY(0)" : "translateY(10px)",
+            transition: "all 0.6s cubic-bezier(0.16,1,0.3,1)",
+          }}
+        >
           <div
+            className="relative overflow-hidden rounded-full"
             style={{
-              marginTop: "2.5rem",
-              width: "clamp(180px, 30vw, 260px)",
-              animation: "tagline-up 0.5s ease forwards",
+              height: "2px",
+              background: "oklch(0.2 0.04 255 / 0.4)",
             }}
           >
-            {/* Track */}
             <div
-              className="relative overflow-hidden rounded-full"
-              style={{ height: "2px", background: "oklch(0.22 0.05 255 / 0.5)" }}
-            >
-              {/* Fill */}
-              <div
-                className="absolute inset-y-0 left-0 rounded-full transition-all duration-200 ease-out"
-                style={{
-                  width: `${Math.min(progress, 100)}%`,
-                  background: "linear-gradient(90deg, oklch(0.45 0.2 250), oklch(0.65 0.22 230))",
-                  boxShadow: "0 0 10px oklch(0.58 0.22 245 / 0.9), 0 0 20px oklch(0.58 0.22 245 / 0.4)",
-                }}
-              />
-              {/* Shimmer sweep on fill */}
-              <div
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{
-                  width: `${Math.min(progress, 100)}%`,
-                  background:
-                    "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.35) 50%, transparent 100%)",
-                  backgroundSize: "200% 100%",
-                  animation: "shimmer 1.5s linear infinite",
-                }}
-              />
-            </div>
-
-            {/* Status label */}
-            <p
-              className="text-center font-mono mt-2"
+              className="absolute inset-y-0 left-0 rounded-full"
               style={{
-                fontSize: "0.6rem",
-                letterSpacing: "0.25em",
-                color: "oklch(0.4 0.03 250)",
+                width: `${Math.min(progress, 100)}%`,
+                background: "linear-gradient(90deg, oklch(0.5 0.2 250), oklch(0.65 0.22 235))",
+                boxShadow: "0 0 12px oklch(0.58 0.22 245 / 0.8)",
+                transition: "width 0.15s ease-out",
               }}
-            >
-              {progress < 100 ? "Loading..." : "Ready"}
-            </p>
+            />
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.3) 50%, transparent 100%)",
+                backgroundSize: "200% 100%",
+                animation: "shimmer 1.8s linear infinite",
+              }}
+            />
           </div>
-        )}
+          <p
+            className="text-center mt-3 font-mono"
+            style={{
+              fontSize: "0.55rem",
+              letterSpacing: "0.3em",
+              color: "oklch(0.35 0.03 250)",
+              transition: "color 0.3s ease",
+            }}
+          >
+            {progress >= 100 ? "READY" : "LOADING"}
+          </p>
+        </div>
       </div>
 
-      {/* ---- Bottom signature line ---- */}
       <div
-        className="absolute bottom-6 inset-x-0 flex items-center justify-center pointer-events-none"
-        style={{ opacity: showTagline ? 1 : 0, transition: "opacity 0.5s ease 0.4s" }}
+        className="absolute bottom-8 inset-x-0 flex items-center justify-center gap-6"
+        style={{
+          opacity: isAfter("ready") ? 1 : 0,
+          transition: "opacity 0.6s ease 0.3s",
+        }}
       >
-        <span
-          style={{
-            fontSize: "0.6rem",
-            letterSpacing: "0.2em",
-            color: "oklch(0.28 0.04 250)",
-            textTransform: "uppercase",
-          }}
-        >
-          Stream · Discover · Experience
-        </span>
-      </div>
-
-      {/* ---- Top-right corner label ---- */}
-      <div
-        className="absolute top-5 right-6 pointer-events-none"
-        style={{ opacity: showBrand ? 1 : 0, transition: "opacity 0.4s ease 0.3s" }}
-      >
-        <span
-          style={{
-            fontSize: "0.6rem",
-            letterSpacing: "0.18em",
-            color: "oklch(0.28 0.04 250)",
-          }}
-        >
-          HD · 4K · HDR
-        </span>
+        {["HD", "4K", "HDR"].map((tag, i) => (
+          <span
+            key={tag}
+            className="font-mono"
+            style={{
+              fontSize: "0.55rem",
+              letterSpacing: "0.2em",
+              color: "oklch(0.3 0.04 250)",
+              opacity: isAfter("ready") ? 1 : 0,
+              transform: isAfter("ready") ? "translateY(0)" : "translateY(8px)",
+              transition: `all 0.5s cubic-bezier(0.16,1,0.3,1) ${0.4 + i * 0.1}s`,
+            }}
+          >
+            {tag}
+          </span>
+        ))}
       </div>
     </div>
   )
