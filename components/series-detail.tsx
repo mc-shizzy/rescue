@@ -28,6 +28,7 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
   const [isLoadingSources, setIsLoadingSources] = useState(false)
   const [loadingEpisodeKey, setLoadingEpisodeKey] = useState<string | null>(null)
   const [sources, setSources] = useState<NormalizedSources | null>(null)
+  const [sourceError, setSourceError] = useState<string | null>(null)
 
   const seasons = series.seasons || []
   const currentSeason = seasons.find((s) => s.seasonNumber === selectedSeason) || seasons[0]
@@ -45,13 +46,19 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
     const key = `${seasonNum}-${episodeNum}`
     setLoadingEpisodeKey(key)
     setIsLoadingSources(true)
+    setSourceError(null)
     try {
       const fetchedSources = await fetchSources(series.id, seasonNum, episodeNum)
       setSources(fetchedSources)
-      setCurrentEpisode({ season: seasonNum, episode: episodeNum })
-      setShowPlayer(true)
+      if (fetchedSources.videos.length > 0) {
+        setCurrentEpisode({ season: seasonNum, episode: episodeNum })
+        setShowPlayer(true)
+      } else {
+        setSourceError("No playable sources available for this episode.")
+      }
     } catch (error) {
       console.error("Failed to fetch sources:", error)
+      setSourceError("Failed to load video sources. Please try again.")
     } finally {
       setIsLoadingSources(false)
       setLoadingEpisodeKey(null)
@@ -84,7 +91,7 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
 
   const videoSources = sources?.videos?.length
     ? sources.videos.map((v) => ({ quality: v.quality, src: v.src }))
-    : [{ quality: "Auto", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" }]
+    : []
   const subtitles = sources?.subtitles?.length ? sources.subtitles : []
 
   const getYouTubeEmbedUrl = (url: string | null | undefined): string | null => {
@@ -210,6 +217,10 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                   {inMyList ? "Saved" : "My List"}
                 </button>
               </div>
+
+              {sourceError && (
+                <p className="text-sm text-red-400 mt-2">{sourceError}</p>
+              )}
             </div>
           </div>
         </div>

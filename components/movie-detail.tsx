@@ -26,6 +26,7 @@ export function MovieDetail({ movie }: MovieDetailProps) {
   const [isLoadingDownload, setIsLoadingDownload] = useState(false)
   const [sources, setSources] = useState<NormalizedSources | null>(null)
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
+  const [sourceError, setSourceError] = useState<string | null>(null)
 
   useEffect(() => {
     setInMyList(isInMyList(movie.id))
@@ -38,12 +39,18 @@ export function MovieDetail({ movie }: MovieDetailProps) {
 
   const handlePlay = async () => {
     setIsLoadingSources(true)
+    setSourceError(null)
     try {
       const fetchedSources = await fetchSources(movie.id)
       setSources(fetchedSources)
-      setShowPlayer(true)
+      if (fetchedSources.videos.length > 0) {
+        setShowPlayer(true)
+      } else {
+        setSourceError("No playable sources available for this title.")
+      }
     } catch (error) {
       console.error("Failed to fetch sources:", error)
+      setSourceError("Failed to load video sources. Please try again.")
     } finally {
       setIsLoadingSources(false)
     }
@@ -77,7 +84,7 @@ export function MovieDetail({ movie }: MovieDetailProps) {
 
   const videoSources = sources?.videos?.length
     ? sources.videos.map((v) => ({ quality: v.quality, src: v.src }))
-    : [{ quality: "Auto", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" }]
+    : []
   const subtitles = sources?.subtitles?.length ? sources.subtitles : []
 
   const getYouTubeEmbedUrl = (url: string | null | undefined): string | null => {
@@ -236,6 +243,10 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                   {isLoadingDownload ? "Loading..." : hasResource ? `${maxResolution}p` : "Download"}
                 </button>
               </div>
+
+              {sourceError && (
+                <p className="text-sm text-red-400 mt-2">{sourceError}</p>
+              )}
         </div>
         </div>
         </div>

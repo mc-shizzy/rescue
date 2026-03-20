@@ -85,9 +85,8 @@ export function VideoPlayer({
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Get default quality (middle quality for balance)
   const getDefaultQuality = useCallback(() => {
-    if (sources.length === 0) return sources[0]
+    if (sources.length === 0) return null
     if (sources.length === 1) return sources[0]
     const middleIndex = Math.floor(sources.length / 2)
     return sources[middleIndex]
@@ -527,7 +526,6 @@ export function VideoPlayer({
             config={{
               file: {
                 attributes: {
-                  crossOrigin: "anonymous",
                   playsInline: true,
                   poster: poster,
                 },
