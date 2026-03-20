@@ -212,17 +212,22 @@
 }
 
 video::cue {
-  background: rgba(0, 0, 0, 0.75);
-  font-size: 1.2em;
+  background: rgba(0, 0, 0, 0.8);
+  font-size: 1.1em;
   padding: 0.2em 0.5em;
   border-radius: 4px;
   font-family: var(--font-sans);
+  line-height: 1.4;
 }
 video::-webkit-media-controls { display: none !important; }
 video::-webkit-media-controls-enclosure { display: none !important; }
 
 @media (max-width: 640px) {
-  video::cue { font-size: 0.9em; }
+  video::cue { font-size: 0.85em; }
+}
+
+@media (orientation: landscape) {
+  video::cue { font-size: 1em; }
 }
 
 @keyframes ping-once {

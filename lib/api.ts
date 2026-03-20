@@ -396,8 +396,7 @@ async function fetchFrenchVersion(
   subjectType: number
 ): Promise<APISubject | null> {
   try {
-    // Remove any existing version tags
-    const cleanTitle = originalTitle.replace(/\s*\[Version française\]\s*/gi, '').trim()
+    const cleanTitle = originalTitle.replace(/\s*\[[^\]]*\]\s*/g, '').trim()
     const frenchTitle = `${cleanTitle} [Version française]`
     
     // Search for French version - cached for 1 hour to reduce API calls
@@ -478,7 +477,7 @@ export async function fetchContentVersions(id: string): Promise<ContentVersions 
   if (!content) return null
 
   if (content.title.toLowerCase().includes('[version française]')) {
-    const cleanTitle = content.title.replace(/\s*\[Version française\]\s*/gi, '').trim()
+    const cleanTitle = content.title.replace(/\s*\[[^\]]*\]\s*/g, '').trim()
     try {
       const res = await fetch(API_ENDPOINTS.search(cleanTitle), {
         next: { revalidate: 3600 },
@@ -488,12 +487,12 @@ export async function fetchContentVersions(id: string): Promise<ContentVersions 
         const json: APISearchResponse = await res.json()
         if (json.status === "success" && json.data?.items) {
           const subjectType = content.type === "series" ? 2 : 1
-          const originalSubject = json.data.items.find(item =>
-            !item.title.toLowerCase().includes('[version française]') &&
-            item.hasResource === true &&
-            item.subjectType === subjectType &&
-            item.title.toLowerCase() === cleanTitle.toLowerCase()
-          )
+          const originalSubject = json.data.items.find(item => {
+            if (item.title.toLowerCase().includes('[version française]')) return false
+            if (!item.hasResource || item.subjectType !== subjectType) return false
+            const itemClean = item.title.replace(/\s*\[[^\]]*\]\s*/g, '').trim().toLowerCase()
+            return itemClean === cleanTitle.toLowerCase()
+          })
           if (originalSubject) {
             const originalContent = await fetchInfo(originalSubject.subjectId)
             if (originalContent) return { original: originalContent, french: content }

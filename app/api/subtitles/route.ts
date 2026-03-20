@@ -23,7 +23,7 @@ function srtToVtt(srt: string): string {
     const textLines = lines.slice(timecodeLineIndex + 1).join("\n")
 
     if (textLines.trim()) {
-      vtt += timecode + "\n" + textLines + "\n\n"
+      vtt += timecode + " line:85%\n" + textLines + "\n\n"
     }
   }
 
