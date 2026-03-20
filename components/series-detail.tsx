@@ -28,7 +28,7 @@ export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
   const [loadingEpisodeKey, setLoadingEpisodeKey] = useState<string | null>(null)
   const [sources, setSources] = useState<NormalizedSources | null>(null)
   const [sourceError, setSourceError] = useState<string | null>(null)
-  const [selectedLang, setSelectedLang] = useState<"original" | "french">("original")
+  const [selectedLang, setSelectedLang] = useState<"original" | "french">(frenchVersion ? "french" : "original")
 
   const activeContent = selectedLang === "french" && frenchVersion ? frenchVersion : series
   const seasons = activeContent.seasons || []
@@ -205,7 +205,7 @@ export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
                     <button
                       onClick={() => setSelectedLang("original")}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
                         selectedLang === "original"
                           ? "text-white shadow-md"
                           : "text-white/50 hover:text-white/80"
@@ -216,12 +216,13 @@ export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
                         boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
                       } : { border: "1px solid transparent" }}
                     >
+                      <span className="text-base leading-none">🇬🇧</span>
                       English
                     </button>
                     <button
                       onClick={() => setSelectedLang("french")}
                       className={cn(
-                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
                         selectedLang === "french"
                           ? "text-white shadow-md"
                           : "text-white/50 hover:text-white/80"
@@ -232,6 +233,7 @@ export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
                         boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
                       } : { border: "1px solid transparent" }}
                     >
+                      <span className="text-base leading-none">🇫🇷</span>
                       Fran&ccedil;ais
                     </button>
                   </div>
