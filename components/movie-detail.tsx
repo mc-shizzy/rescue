@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Play, Plus, Check, Star, Calendar, Clock, ChevronLeft,
-  Download, Volume2, VolumeX, Loader2, X, Film,
+  Download, Volume2, VolumeX, Loader2, X, Film, Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isInMyList, toggleMyList } from "@/lib/my-list"
@@ -16,9 +16,10 @@ import type { NormalizedContent, NormalizedSources } from "@/lib/api"
 
 interface MovieDetailProps {
   movie: NormalizedContent
+  frenchVersion?: NormalizedContent | null
 }
 
-export function MovieDetail({ movie }: MovieDetailProps) {
+export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
   const [inMyList, setInMyList] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [showPlayer, setShowPlayer] = useState(false)
@@ -27,10 +28,20 @@ export function MovieDetail({ movie }: MovieDetailProps) {
   const [sources, setSources] = useState<NormalizedSources | null>(null)
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
   const [sourceError, setSourceError] = useState<string | null>(null)
+  const [selectedLang, setSelectedLang] = useState<"original" | "french">("original")
+
+  const activeContent = selectedLang === "french" && frenchVersion ? frenchVersion : movie
 
   useEffect(() => {
     setInMyList(isInMyList(movie.id))
   }, [movie.id])
+
+  useEffect(() => {
+    setSources(null)
+    setSourceError(null)
+    setShowDownloadOptions(false)
+    setShowPlayer(false)
+  }, [selectedLang])
 
   const handleToggleMyList = () => {
     const { isInList } = toggleMyList(movie.id)
@@ -41,7 +52,7 @@ export function MovieDetail({ movie }: MovieDetailProps) {
     setIsLoadingSources(true)
     setSourceError(null)
     try {
-      const fetchedSources = await fetchSources(movie.id)
+      const fetchedSources = await fetchSources(activeContent.id)
       setSources(fetchedSources)
       if (fetchedSources.videos.length > 0) {
         setShowPlayer(true)
@@ -60,7 +71,7 @@ export function MovieDetail({ movie }: MovieDetailProps) {
     if (sources?.videos?.length) { setShowDownloadOptions(true); return }
     setIsLoadingDownload(true)
     try {
-      const fetchedSources = await fetchSources(movie.id)
+      const fetchedSources = await fetchSources(activeContent.id)
       setSources(fetchedSources)
       if (fetchedSources.videos.length > 0) setShowDownloadOptions(true)
     } catch (error) {
@@ -99,9 +110,11 @@ export function MovieDetail({ movie }: MovieDetailProps) {
   const hasYouTubeTrailer = !!trailerEmbedUrl
   const hasTrailer = hasDirectTrailer || hasYouTubeTrailer
 
-  const availableResolutions = movie.resource?.seasons?.[0]?.resolutions || []
-  const hasResource = movie.hasResource && availableResolutions.length > 0
+  const availableResolutions = activeContent.resource?.seasons?.[0]?.resolutions || []
+  const hasResource = activeContent.hasResource && availableResolutions.length > 0
   const maxResolution = availableResolutions.length > 0 ? Math.max(...availableResolutions) : 0
+
+  const hasDubOptions = !!frenchVersion
 
   return (
     <>
@@ -109,7 +122,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
 
         {/* ── Hero ─────────────────────────────────────────────── */}
         <div className="relative h-[62vh] min-h-[460px] max-h-[680px] w-full overflow-hidden">
-          {/* Trailer / backdrop */}
           {hasDirectTrailer ? (
             <video src={movie.trailerVideo} autoPlay muted={isMuted} loop playsInline className="absolute inset-0 w-full h-full object-cover" />
           ) : hasYouTubeTrailer ? (
@@ -120,12 +132,10 @@ export function MovieDetail({ movie }: MovieDetailProps) {
             <Image src={movie.backdrop || movie.poster || "/placeholder.svg"} alt={movie.title} fill priority className="object-cover" />
           </div>
 
-          {/* Vignette layers */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/60 to-black/10 z-[1] pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/20 z-[1] pointer-events-none" />
           <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: "linear-gradient(135deg, oklch(0.25 0.1 250 / 0.12) 0%, transparent 60%)" }} />
 
-          {/* Back button */}
           <Link
             href="/"
             className="absolute top-4 left-4 lg:left-8 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-pill hover:border-primary/40 hover:bg-primary/10 transition-all duration-200 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -134,7 +144,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
             Back
           </Link>
 
-          {/* Mute toggle */}
           {hasTrailer && (
             <button
               onClick={() => setIsMuted(!isMuted)}
@@ -145,11 +154,9 @@ export function MovieDetail({ movie }: MovieDetailProps) {
             </button>
           )}
 
-          {/* Hero content */}
           <div className="absolute inset-x-0 bottom-0 z-10 px-4 sm:px-8 lg:px-12 pb-10">
             <div className="max-w-2xl space-y-4">
 
-              {/* Type + quality badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] text-primary" style={{ background: "oklch(0.58 0.22 245 / 0.15)", border: "1px solid oklch(0.58 0.22 245 / 0.3)" }}>
                   <Film className="h-3 w-3" /> Film
@@ -175,12 +182,10 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                 )}
               </div>
 
-              {/* Title */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-balance leading-tight">
                 {movie.title}
               </h1>
 
-              {/* Genre pills */}
               <div className="flex flex-wrap gap-1.5">
                 {movie.genre.slice(0, 4).map((g) => (
                   <span key={g} className="px-2.5 py-0.5 rounded-full text-[11px] text-white/55" style={{ background: "oklch(1 0 0 / 0.06)", border: "1px solid oklch(1 0 0 / 0.09)" }}>
@@ -189,9 +194,50 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                 ))}
               </div>
 
-              {/* Action buttons */}
+              {hasDubOptions && (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <Globe className="h-4 w-4 text-primary/70 flex-shrink-0" />
+                  <div
+                    className="flex items-center gap-0.5 p-0.5 rounded-xl"
+                    style={{ background: "oklch(0.10 0.03 255 / 0.75)", border: "1px solid oklch(0.7 0.05 240 / 0.2)" }}
+                  >
+                    <button
+                      onClick={() => setSelectedLang("original")}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        selectedLang === "original"
+                          ? "text-white shadow-md"
+                          : "text-white/50 hover:text-white/80"
+                      )}
+                      style={selectedLang === "original" ? {
+                        background: "oklch(0.58 0.22 245 / 0.3)",
+                        border: "1px solid oklch(0.58 0.22 245 / 0.5)",
+                        boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
+                      } : { border: "1px solid transparent" }}
+                    >
+                      English
+                    </button>
+                    <button
+                      onClick={() => setSelectedLang("french")}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        selectedLang === "french"
+                          ? "text-white shadow-md"
+                          : "text-white/50 hover:text-white/80"
+                      )}
+                      style={selectedLang === "french" ? {
+                        background: "oklch(0.58 0.22 245 / 0.3)",
+                        border: "1px solid oklch(0.58 0.22 245 / 0.5)",
+                        boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
+                      } : { border: "1px solid transparent" }}
+                    >
+                      Fran&ccedil;ais
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                {/* Play */}
                 <button
                   onClick={handlePlay}
                   disabled={!hasResource || isLoadingSources}
@@ -206,7 +252,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                   {isLoadingSources ? "Loading..." : hasResource ? "Play" : "Unavailable"}
                 </button>
 
-                {/* My List */}
                 <button
                   onClick={handleToggleMyList}
                   className={cn(
@@ -225,7 +270,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                   {inMyList ? "Saved" : "My List"}
                 </button>
 
-                {/* Download */}
                 <button
                   onClick={handleDownload}
                   disabled={!hasResource || isLoadingDownload}
@@ -253,25 +297,20 @@ export function MovieDetail({ movie }: MovieDetailProps) {
 
         {/* ── Detail content ──────────────────────────────────── */}
         <div className="mx-auto max-w-[1320px] px-4 sm:px-8 lg:px-12 py-10">
-          {/* Adsterra 300x250 Banner */}
           <AdBanner300x250 hidden={showPlayer} />
           <div className="flex flex-col lg:flex-row gap-10">
 
-            {/* Poster */}
             <div className="hidden lg:block flex-shrink-0">
               <div
                 className="relative w-[180px] aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
                 style={{ border: "1px solid oklch(0.7 0.05 240 / 0.15)" }}
               >
                 <Image src={movie.poster || "/placeholder.svg"} alt={movie.title} fill className="object-cover" />
-                {/* Shine overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />
               </div>
             </div>
 
-            {/* Info */}
             <div className="flex-1 space-y-6">
-              {/* Description */}
               <div
                 className="p-5 rounded-2xl"
                 style={{ background: "oklch(0.12 0.03 255 / 0.5)", border: "1px solid oklch(0.7 0.05 240 / 0.1)" }}
@@ -279,7 +318,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
                 <p className="text-[15px] text-muted-foreground leading-relaxed">{movie.description}</p>
               </div>
 
-              {/* Meta grid */}
               {movie.country && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
@@ -300,7 +338,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
               )}
             </div>
 
-            {/* Cast */}
             {movie.actors && movie.actors.length > 0 && (
               <div className="lg:w-60 flex-shrink-0">
                 <div className="flex items-center gap-2 mb-4">
@@ -328,11 +365,10 @@ export function MovieDetail({ movie }: MovieDetailProps) {
         </div>
       </section>
 
-      {/* Video Player */}
       {showPlayer && (
         <div className="fixed inset-0 z-[200] bg-black">
           <VideoPlayer
-            title={movie.title}
+            title={selectedLang === "french" && frenchVersion ? frenchVersion.title : movie.title}
             poster={movie.backdrop || movie.poster}
             sources={videoSources}
             subtitles={subtitles}
@@ -342,7 +378,6 @@ export function MovieDetail({ movie }: MovieDetailProps) {
         </div>
       )}
 
-      {/* Download Modal */}
       {showDownloadOptions && sources?.videos && sources.videos.length > 0 && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowDownloadOptions(false)}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />

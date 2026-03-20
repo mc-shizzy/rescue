@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { SeriesDetail } from "@/components/series-detail"
 import { Footer } from "@/components/footer"
 import { PremiumCarousel } from "@/components/premium-carousel"
-import { fetchInfo, fetchTrending } from "@/lib/api"
+import { fetchInfo, fetchContentVersions, fetchTrending } from "@/lib/api"
 
 export const runtime = 'edge';
 
@@ -63,11 +63,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function SeriesPage({ params }: PageProps) {
   const { id } = await params
 
-  const seriesData = await fetchInfo(id)
+  const versions = await fetchContentVersions(id)
 
-  if (!seriesData || seriesData.type !== "series") {
+  if (!versions || versions.original.type !== "series") {
     notFound()
   }
+
+  const seriesData = versions.original
 
   const seriesJsonLd = {
     "@context": "https://schema.org",
@@ -104,7 +106,7 @@ export default async function SeriesPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(seriesJsonLd) }} />
-      <SeriesDetail series={seriesData} />
+      <SeriesDetail series={seriesData} frenchVersion={versions.french} />
 
       {similarContent.length > 0 && (
         <div className="py-8">

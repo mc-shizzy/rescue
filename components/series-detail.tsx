@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import {
   Play, Plus, Check, Star, Calendar, ChevronLeft,
-  Volume2, VolumeX, Loader2, Tv, ChevronRight,
+  Volume2, VolumeX, Loader2, Tv, ChevronRight, Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isInMyList, toggleMyList } from "@/lib/my-list"
@@ -16,26 +16,38 @@ import type { NormalizedContent, NormalizedSources } from "@/lib/api"
 
 interface SeriesDetailProps {
   series: NormalizedContent
+  frenchVersion?: NormalizedContent | null
 }
 
-export function SeriesDetail({ series }: SeriesDetailProps) {
+export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
   const [inMyList, setInMyList] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
-  const initialSeasonNum = series.seasons?.[0]?.seasonNumber ?? 1
-  const [selectedSeason, setSelectedSeason] = useState(initialSeasonNum)
   const [showPlayer, setShowPlayer] = useState(false)
   const [currentEpisode, setCurrentEpisode] = useState<{ season: number; episode: number } | null>(null)
   const [isLoadingSources, setIsLoadingSources] = useState(false)
   const [loadingEpisodeKey, setLoadingEpisodeKey] = useState<string | null>(null)
   const [sources, setSources] = useState<NormalizedSources | null>(null)
   const [sourceError, setSourceError] = useState<string | null>(null)
+  const [selectedLang, setSelectedLang] = useState<"original" | "french">("original")
 
-  const seasons = series.seasons || []
+  const activeContent = selectedLang === "french" && frenchVersion ? frenchVersion : series
+  const seasons = activeContent.seasons || []
+  const initialSeasonNum = seasons[0]?.seasonNumber ?? 1
+  const [selectedSeason, setSelectedSeason] = useState(initialSeasonNum)
   const currentSeason = seasons.find((s) => s.seasonNumber === selectedSeason) || seasons[0]
 
   useEffect(() => {
     setInMyList(isInMyList(series.id))
   }, [series.id])
+
+  useEffect(() => {
+    setSources(null)
+    setSourceError(null)
+    setCurrentEpisode(null)
+    setShowPlayer(false)
+    const firstSeason = (selectedLang === "french" && frenchVersion ? frenchVersion : series).seasons?.[0]?.seasonNumber ?? 1
+    setSelectedSeason(firstSeason)
+  }, [selectedLang, frenchVersion, series])
 
   const handleToggleMyList = () => {
     const { isInList } = toggleMyList(series.id)
@@ -48,7 +60,7 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
     setIsLoadingSources(true)
     setSourceError(null)
     try {
-      const fetchedSources = await fetchSources(series.id, seasonNum, episodeNum)
+      const fetchedSources = await fetchSources(activeContent.id, seasonNum, episodeNum)
       setSources(fetchedSources)
       if (fetchedSources.videos.length > 0) {
         setCurrentEpisode({ season: seasonNum, episode: episodeNum })
@@ -106,9 +118,11 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
   const hasYouTubeTrailer = !!trailerEmbedUrl
   const hasTrailer = hasDirectTrailer || hasYouTubeTrailer
 
-  const availableResolutions = series.resource?.seasons?.[0]?.resolutions || []
-  const hasResource = series.hasResource && availableResolutions.length > 0
+  const availableResolutions = activeContent.resource?.seasons?.[0]?.resolutions || []
+  const hasResource = activeContent.hasResource && availableResolutions.length > 0
   const maxResolution = availableResolutions.length > 0 ? Math.max(...availableResolutions) : 0
+
+  const hasDubOptions = !!frenchVersion
 
   return (
     <>
@@ -130,7 +144,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-black/20 z-[1] pointer-events-none" />
           <div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: "linear-gradient(135deg, oklch(0.25 0.1 250 / 0.12) 0%, transparent 60%)" }} />
 
-          {/* Back */}
           <Link
             href="/"
             className="absolute top-4 left-4 lg:left-8 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-pill hover:border-primary/40 hover:bg-primary/10 transition-all duration-200 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -139,7 +152,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
             Back
           </Link>
 
-          {/* Mute */}
           {hasTrailer && (
             <button
               onClick={() => setIsMuted(!isMuted)}
@@ -149,7 +161,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
             </button>
           )}
 
-          {/* Hero content */}
           <div className="absolute inset-x-0 bottom-0 z-10 px-4 sm:px-8 lg:px-12 pb-10">
             <div className="max-w-2xl space-y-4">
               <div className="flex items-center gap-2 flex-wrap">
@@ -184,8 +195,50 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                 ))}
               </div>
 
+              {hasDubOptions && (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <Globe className="h-4 w-4 text-primary/70 flex-shrink-0" />
+                  <div
+                    className="flex items-center gap-0.5 p-0.5 rounded-xl"
+                    style={{ background: "oklch(0.10 0.03 255 / 0.75)", border: "1px solid oklch(0.7 0.05 240 / 0.2)" }}
+                  >
+                    <button
+                      onClick={() => setSelectedLang("original")}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        selectedLang === "original"
+                          ? "text-white shadow-md"
+                          : "text-white/50 hover:text-white/80"
+                      )}
+                      style={selectedLang === "original" ? {
+                        background: "oklch(0.58 0.22 245 / 0.3)",
+                        border: "1px solid oklch(0.58 0.22 245 / 0.5)",
+                        boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
+                      } : { border: "1px solid transparent" }}
+                    >
+                      English
+                    </button>
+                    <button
+                      onClick={() => setSelectedLang("french")}
+                      className={cn(
+                        "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200",
+                        selectedLang === "french"
+                          ? "text-white shadow-md"
+                          : "text-white/50 hover:text-white/80"
+                      )}
+                      style={selectedLang === "french" ? {
+                        background: "oklch(0.58 0.22 245 / 0.3)",
+                        border: "1px solid oklch(0.58 0.22 245 / 0.5)",
+                        boxShadow: "0 0 16px oklch(0.58 0.22 245 / 0.2)"
+                      } : { border: "1px solid transparent" }}
+                    >
+                      Fran&ccedil;ais
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                {/* Play S1:E1 */}
                 <button
                   onClick={() => seasons.length > 0 && seasons[0].episodes.length > 0 && playEpisode(seasons[0].seasonNumber, 1)}
                   disabled={(!hasResource && seasons.length === 0) || isLoadingSources}
@@ -200,7 +253,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                   {isLoadingSources && !loadingEpisodeKey ? "Loading..." : `Play S${seasons[0]?.seasonNumber || 1}:E1`}
                 </button>
 
-                {/* My List */}
                 <button
                   onClick={handleToggleMyList}
                   className={cn(
@@ -227,11 +279,9 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
 
         {/* ── Detail content ──────────────────────────────────── */}
         <div className="mx-auto max-w-[1320px] px-4 sm:px-8 lg:px-12 py-10">
-          {/* Adsterra 300x250 Banner */}
           <AdBanner300x250 hidden={showPlayer} />
           <div className="flex flex-col lg:flex-row gap-10">
 
-            {/* Poster */}
             <div className="hidden lg:block flex-shrink-0">
               <div
                 className="relative w-[180px] aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
@@ -247,10 +297,8 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
               </div>
             </div>
 
-            {/* Info + Episodes */}
             <div className="flex-1 space-y-8 min-w-0">
 
-              {/* Description */}
               <div
                 className="p-5 rounded-2xl"
                 style={{ background: "oklch(0.12 0.03 255 / 0.5)", border: "1px solid oklch(0.7 0.05 240 / 0.1)" }}
@@ -258,16 +306,13 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                 <p className="text-[15px] text-muted-foreground leading-relaxed">{series.description}</p>
               </div>
 
-              {/* Episodes section */}
               {seasons.length > 0 && currentSeason && (
                 <div>
-                  {/* Section header */}
                   <div className="flex items-center gap-3 mb-5">
                     <div className="section-title-line w-6" />
                     <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Episodes</h2>
                     <div className="flex-1" />
 
-                    {/* Season tab selector */}
                     {seasons.length > 1 && (
                       <div
                         className="flex items-center gap-1 p-1 rounded-xl"
@@ -299,7 +344,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                     )}
                   </div>
 
-                  {/* Episode cards */}
                   <div className="space-y-2">
                     {currentSeason.episodes.map((episode) => {
                       const epKey = `${selectedSeason}-${episode.episodeNumber}`
@@ -329,7 +373,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                                 }
                           }
                         >
-                          {/* Episode number */}
                           <span
                             className={cn(
                               "w-7 text-center text-sm font-black tabular-nums flex-shrink-0 transition-colors",
@@ -339,7 +382,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                             {episode.episodeNumber}
                           </span>
 
-                          {/* Play icon */}
                           <div
                             className={cn(
                               "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
@@ -356,7 +398,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                             )}
                           </div>
 
-                          {/* Title + description */}
                           <div className="flex-1 min-w-0">
                             <p className={cn("text-sm font-semibold truncate transition-colors", isCurrentlyPlaying ? "text-primary" : "group-hover:text-foreground text-foreground/80")}>
                               {episode.title}
@@ -366,7 +407,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
                             )}
                           </div>
 
-                          {/* Duration + arrow */}
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {episode.duration && (
                               <span className="text-[11px] text-muted-foreground tabular-nums">{episode.duration}</span>
@@ -381,7 +421,6 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
               )}
             </div>
 
-            {/* Cast */}
             {series.actors && series.actors.length > 0 && (
               <div className="lg:w-56 flex-shrink-0">
                 <div className="flex items-center gap-2 mb-4">
@@ -409,11 +448,10 @@ export function SeriesDetail({ series }: SeriesDetailProps) {
         </div>
       </section>
 
-      {/* Video Player */}
       {showPlayer && currentEpisode && currentEpisodeInfo && (
         <div className="fixed inset-0 z-[200] bg-black">
           <VideoPlayer
-            title={`${series.title} — S${currentEpisode.season}:E${currentEpisode.episode} "${currentEpisodeInfo.title}"`}
+            title={`${activeContent.title} — S${currentEpisode.season}:E${currentEpisode.episode} "${currentEpisodeInfo.title}"`}
             poster={series.backdrop || series.poster}
             sources={videoSources}
             subtitles={subtitles}

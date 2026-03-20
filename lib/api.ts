@@ -434,7 +434,7 @@ export async function fetchSearch(query: string): Promise<NormalizedContent[]> {
   }
 }
 
-export async function fetchInfo(id: string, preferFrench: boolean = true): Promise<NormalizedContent | null> {
+export async function fetchInfo(id: string): Promise<NormalizedContent | null> {
   try {
     const res = await fetch(API_ENDPOINTS.info(id), {
       next: { revalidate: 3600 },
@@ -444,33 +444,6 @@ export async function fetchInfo(id: string, preferFrench: boolean = true): Promi
     const json: APIInfoResponse = await res.json()
 
     if (json.status === "success" && json.data?.subject) {
-      const subject = json.data.subject
-      
-      // Try to get French version if preferred and not already French
-      if (preferFrench && !subject.title.toLowerCase().includes('[version française]')) {
-        const frenchVersion = await fetchFrenchVersion(subject.title, subject.subjectType)
-        
-        if (frenchVersion) {
-          // Fetch the full info for the French version
-          const frenchRes = await fetch(API_ENDPOINTS.info(frenchVersion.subjectId), {
-            next: { revalidate: 3600 },
-            headers: { Accept: "application/json" },
-          })
-          
-          if (frenchRes.ok) {
-            const frenchJson: APIInfoResponse = await frenchRes.json()
-            if (frenchJson.status === "success" && frenchJson.data?.subject) {
-              return normalizeSubjectWithInfo(
-                frenchJson.data.subject, 
-                frenchJson.data.stars, 
-                frenchJson.data.resource
-              )
-            }
-          }
-        }
-      }
-      
-      // Use normalizeSubjectWithInfo to include stars and resource data
       return normalizeSubjectWithInfo(json.data.subject, json.data.stars, json.data.resource)
     }
     return null
@@ -478,6 +451,49 @@ export async function fetchInfo(id: string, preferFrench: boolean = true): Promi
     console.error("Info fetch error:", error)
     return null
   }
+}
+
+export interface ContentVersions {
+  original: NormalizedContent
+  french: NormalizedContent | null
+}
+
+export async function fetchContentVersions(id: string): Promise<ContentVersions | null> {
+  const content = await fetchInfo(id)
+  if (!content) return null
+
+  if (content.title.toLowerCase().includes('[version française]')) {
+    const cleanTitle = content.title.replace(/\s*\[Version française\]\s*/gi, '').trim()
+    try {
+      const res = await fetch(API_ENDPOINTS.search(cleanTitle), {
+        next: { revalidate: 3600 },
+        headers: { Accept: "application/json" },
+      })
+      if (res.ok) {
+        const json: APISearchResponse = await res.json()
+        if (json.status === "success" && json.data?.items) {
+          const subjectType = content.type === "series" ? 2 : 1
+          const originalSubject = json.data.items.find(item =>
+            !item.title.toLowerCase().includes('[version française]') &&
+            item.hasResource === true &&
+            item.subjectType === subjectType &&
+            item.title.toLowerCase() === cleanTitle.toLowerCase()
+          )
+          if (originalSubject) {
+            const originalContent = await fetchInfo(originalSubject.subjectId)
+            if (originalContent) return { original: originalContent, french: content }
+          }
+        }
+      }
+    } catch {}
+    return { original: content, french: null }
+  }
+
+  const frenchSubject = await fetchFrenchVersion(content.title, content.type === "series" ? 2 : 1)
+  if (!frenchSubject) return { original: content, french: null }
+
+  const frenchContent = await fetchInfo(frenchSubject.subjectId)
+  return { original: content, french: frenchContent }
 }
 
 export async function fetchHomepage(): Promise<{

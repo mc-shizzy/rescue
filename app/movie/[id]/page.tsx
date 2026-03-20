@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Footer } from "@/components/footer"
 import { MovieDetail } from "@/components/movie-detail"
 import { PremiumCarousel } from "@/components/premium-carousel"
-import { fetchInfo, fetchTrending } from "@/lib/api"
+import { fetchInfo, fetchContentVersions, fetchTrending } from "@/lib/api"
 
 export const runtime = 'edge';
 
@@ -59,11 +59,13 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
 export default async function MoviePage({ params }: MoviePageProps) {
   const { id } = await params
 
-  const movie = await fetchInfo(id)
+  const versions = await fetchContentVersions(id)
 
-  if (!movie || movie.type !== "movie") {
+  if (!versions || versions.original.type !== "movie") {
     notFound()
   }
+
+  const movie = versions.original
 
   const movieJsonLd = {
     "@context": "https://schema.org",
@@ -99,7 +101,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
   return (
     <main className="min-h-screen bg-background">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(movieJsonLd) }} />
-      <MovieDetail movie={movie} />
+      <MovieDetail movie={movie} frenchVersion={versions.french} />
 
       {similarContent.length > 0 && (
         <div className="py-8">

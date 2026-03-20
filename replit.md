@@ -33,7 +33,7 @@ A Netflix-style free streaming website built with Next.js 16 (App Router), React
 ## Key Components
 
 - `components/video-player.tsx` — Custom video player with quality switching, subtitles, playback speed, mobile gestures (double-tap seek), keyboard shortcuts, fullscreen, error handling
-- `components/movie-detail.tsx` / `series-detail.tsx` — Content detail pages
+- `components/movie-detail.tsx` / `series-detail.tsx` — Content detail pages with dubbed language selector (English/Français)
 - `components/navbar.tsx` — Fixed top navigation with mobile drawer
 - `components/hero-section.tsx` — Homepage hero carousel
 - `components/genre-rail.tsx` / `genre-section.tsx` — Horizontal content scrollers
@@ -50,5 +50,6 @@ pnpm run dev   # starts on port 5000, bound to 0.0.0.0
 ## Notes
 
 - Video player was migrated from ReactPlayer to native HTML5 video for better compatibility and fewer CORS issues
-- The app auto-searches for French dubbed versions via `fetchInfo()` (doubles API calls per content page)
+- French dubbed versions are fetched via `fetchContentVersions()` — both original and French content are loaded server-side and a language selector appears on the detail page when a French dub is available
+- Captions/subtitles come from the sources API and are rendered via HTML5 `<track>` elements in the video player
 - Download proxy validates URLs against a trusted domains allowlist to prevent SSRF
