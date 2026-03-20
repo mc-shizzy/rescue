@@ -1,9 +1,11 @@
 "use client"
-import { useState, useRef, useEffect, useCallback } from "react"
-import { X, ChevronRight, Loader2, Settings, Check, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipForward, SkipBack, AlertCircle, RefreshCw } from "lucide-react"
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"
+import {
+  X, ChevronRight, Loader2, Settings, Check, Play, Pause,
+  Volume2, VolumeX, Maximize, Minimize, SkipForward, SkipBack,
+  AlertCircle, RefreshCw,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
-import ReactPlayer from "react-player"
-import type { OnProgressProps } from "react-player/base"
 
 export interface SubtitleTrack {
   id: string
@@ -42,13 +44,13 @@ export function VideoPlayer({
   onEnded,
   nextEpisode,
 }: VideoPlayerProps) {
-  const playerRef = useRef<ReactPlayer | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
   const hideControlsTimeout = useRef<NodeJS.Timeout>()
 
   const [isReady, setIsReady] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(autoPlay)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [volume, setVolume] = useState(1)
   const [played, setPlayed] = useState(0)
@@ -66,16 +68,18 @@ export function VideoPlayer({
   const [showPlaybackMenu, setShowPlaybackMenu] = useState(false)
   const [hasError, setHasError] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string>("")
-  const [seekTime, setSeekTime] = useState<number | null>(null)
   const [showSubtitleMenu, setShowSubtitleMenu] = useState(false)
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [doubleTapSide, setDoubleTapSide] = useState<"left" | "right" | null>(null)
   const [showSettingsPanel, setShowSettingsPanel] = useState(false)
+  const [isSeeking, setIsSeeking] = useState(false)
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 })
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const seekTimeRef = useRef<number | null>(null)
+  const wasPlayingRef = useRef(autoPlay)
+  const isInitialLoadRef = useRef(true)
 
-  // Detect mobile device
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768 || "ontouchstart" in window)
@@ -85,23 +89,159 @@ export function VideoPlayer({
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  const getDefaultQuality = useCallback(() => {
+  const getDefaultQuality = useMemo(() => {
     if (sources.length === 0) return null
     if (sources.length === 1) return sources[0]
     const middleIndex = Math.floor(sources.length / 2)
     return sources[middleIndex]
   }, [sources])
 
-  // Initialize with default quality
   useEffect(() => {
-    const defaultSource = getDefaultQuality()
-    if (defaultSource) {
-      setSelectedQuality(defaultSource.quality)
-      setCurrentUrl(defaultSource.src)
+    if (getDefaultQuality) {
+      setSelectedQuality(getDefaultQuality.quality)
+      setCurrentUrl(getDefaultQuality.src)
     }
   }, [getDefaultQuality])
 
-  // Handle mouse movement for controls visibility
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid || !currentUrl) return
+
+    vid.src = currentUrl
+    vid.load()
+  }, [currentUrl])
+
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+
+    const onLoadedMetadata = () => {
+      setDuration(vid.duration)
+      setIsReady(true)
+      setHasError(false)
+      setErrorMessage("")
+
+      const targetTime = seekTimeRef.current !== null ? seekTimeRef.current : startTime
+      if (targetTime > 0) {
+        vid.currentTime = targetTime
+        seekTimeRef.current = null
+      }
+
+      const shouldPlay = isInitialLoadRef.current ? autoPlay : wasPlayingRef.current
+      if (shouldPlay) {
+        vid.play().catch(() => {})
+      }
+      isInitialLoadRef.current = false
+    }
+
+    const onTimeUpdate = () => {
+      if (vid.duration > 0) {
+        setCurrentTime(vid.currentTime)
+        setPlayed(vid.currentTime / vid.duration)
+      }
+    }
+
+    const onProgress = () => {
+      if (vid.buffered.length > 0 && vid.duration > 0) {
+        setLoaded(vid.buffered.end(vid.buffered.length - 1) / vid.duration)
+      }
+    }
+
+    const onPlay = () => setIsPlaying(true)
+    const onPause = () => setIsPlaying(false)
+    const onWaiting = () => setIsBuffering(true)
+    const onCanPlay = () => setIsBuffering(false)
+
+    const onEnded_ = () => {
+      onEnded?.()
+    }
+
+    const onError = () => {
+      setHasError(true)
+      setIsBuffering(false)
+      const err = vid.error
+      let message = "Unable to load video. Please try again or select a different quality."
+      if (err) {
+        if (err.code === 1) message = "Video loading was aborted. Please try again."
+        else if (err.code === 2) message = "Network error. Please check your connection and try again."
+        else if (err.code === 3) message = "Error decoding video. Try a different quality option."
+        else if (err.code === 4) message = "This video format is not supported. Try a different quality."
+      }
+      setErrorMessage(message)
+    }
+
+    vid.addEventListener("loadedmetadata", onLoadedMetadata)
+    vid.addEventListener("timeupdate", onTimeUpdate)
+    vid.addEventListener("progress", onProgress)
+    vid.addEventListener("play", onPlay)
+    vid.addEventListener("pause", onPause)
+    vid.addEventListener("waiting", onWaiting)
+    vid.addEventListener("canplay", onCanPlay)
+    vid.addEventListener("ended", onEnded_)
+    vid.addEventListener("error", onError)
+
+    return () => {
+      vid.removeEventListener("loadedmetadata", onLoadedMetadata)
+      vid.removeEventListener("timeupdate", onTimeUpdate)
+      vid.removeEventListener("progress", onProgress)
+      vid.removeEventListener("play", onPlay)
+      vid.removeEventListener("pause", onPause)
+      vid.removeEventListener("waiting", onWaiting)
+      vid.removeEventListener("canplay", onCanPlay)
+      vid.removeEventListener("ended", onEnded_)
+      vid.removeEventListener("error", onError)
+    }
+  }, [autoPlay, startTime, onEnded])
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackRate
+    }
+  }, [playbackRate])
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume
+      videoRef.current.muted = isMuted
+    }
+  }, [volume, isMuted])
+
+  useEffect(() => {
+    if (duration > 0 && currentTime > 0) {
+      onTimeUpdate?.(currentTime)
+      const progress = currentTime / duration
+      if (nextEpisode && progress > 0.9) {
+        setShowNextEpisode(true)
+      } else {
+        setShowNextEpisode(false)
+      }
+    }
+  }, [currentTime, duration, nextEpisode, onTimeUpdate])
+
+  useEffect(() => {
+    const vid = videoRef.current
+    if (!vid) return
+
+    const existingTracks = vid.querySelectorAll("track")
+    existingTracks.forEach((t) => t.remove())
+
+    subtitles.forEach((sub) => {
+      const track = document.createElement("track")
+      track.kind = "subtitles"
+      track.src = sub.src
+      track.srclang = sub.language
+      track.label = sub.label
+      if (selectedSubtitle === sub.id) {
+        track.default = true
+      }
+      vid.appendChild(track)
+    })
+
+    for (let i = 0; i < vid.textTracks.length; i++) {
+      vid.textTracks[i].mode = subtitles[i] && selectedSubtitle === subtitles[i].id ? "showing" : "hidden"
+    }
+  }, [subtitles, selectedSubtitle])
+
   const handleMouseMove = useCallback(() => {
     setShowControls(true)
     if (hideControlsTimeout.current) {
@@ -117,224 +257,130 @@ export function VideoPlayer({
     }, 3000)
   }, [isPlaying])
 
-  // Handle quality change
   const handleQualityChange = useCallback(
     (quality: string) => {
       const source = sources.find((s) => s.quality === quality)
       if (!source) return
-
-      // Store current time for seeking after quality change
-      setSeekTime(currentTime)
+      seekTimeRef.current = videoRef.current?.currentTime ?? 0
+      wasPlayingRef.current = !videoRef.current?.paused
+      isInitialLoadRef.current = false
       setSelectedQuality(quality)
       setCurrentUrl(source.src)
       setShowQualityMenu(false)
       setHasError(false)
       setErrorMessage("")
     },
-    [sources, currentTime],
+    [sources],
   )
 
-  // Handle progress update
-  const handleProgress = useCallback(
-    (state: OnProgressProps) => {
-      setPlayed(state.played)
-      setLoaded(state.loaded)
-      setCurrentTime(state.playedSeconds)
-      onTimeUpdate?.(state.playedSeconds)
-
-      // Show next episode button when near end (90% watched)
-      if (nextEpisode && duration > 0 && state.played > 0.9) {
-        setShowNextEpisode(true)
-      } else {
-        setShowNextEpisode(false)
-      }
-    },
-    [duration, nextEpisode, onTimeUpdate],
-  )
-
-  // Handle player ready
-  const handleReady = useCallback(() => {
-    setIsReady(true)
-    setHasError(false)
-    setErrorMessage("")
-    
-    // Seek to start time or saved time after quality change
-    const targetTime = seekTime !== null ? seekTime : startTime
-    if (targetTime > 0 && playerRef.current) {
-      playerRef.current.seekTo(targetTime, "seconds")
-      setSeekTime(null)
-    }
-  }, [startTime, seekTime])
-
-  // Handle player error with better error messages
-  const handleError = useCallback((error: unknown) => {
-    setHasError(true)
-    setIsBuffering(false)
-    
-    // Provide user-friendly error messages based on error type
-    let message = "Unable to load video. Please try again or select a different quality."
-    
-    if (error instanceof Error) {
-      const errorMsg = error.message.toLowerCase()
-      if (errorMsg.includes("src_not_supported") || errorMsg.includes("not supported") || errorMsg.includes("format")) {
-        message = "This video format is not supported. Try a different quality."
-      } else if (errorMsg.includes("network") || errorMsg.includes("fetch") || errorMsg.includes("connection")) {
-        message = "Network error. Please check your connection and try again."
-      } else if (errorMsg.includes("decode") || errorMsg.includes("corrupt")) {
-        message = "Error decoding video. Try a different quality option."
-      } else if (errorMsg.includes("aborted")) {
-        message = "Video loading was interrupted. Please try again."
-      }
-    } else if (typeof error === "object" && error !== null) {
-      // Handle MediaError objects from HTML5 video element
-      const mediaError = error as { code?: number }
-      if (mediaError.code === 1) {
-        message = "Video loading was aborted. Please try again."
-      } else if (mediaError.code === 2) {
-        message = "Network error. Please check your connection and try again."
-      } else if (mediaError.code === 3) {
-        message = "Error decoding video. Try a different quality option."
-      } else if (mediaError.code === 4) {
-        message = "This video format is not supported. Try a different quality."
-      }
-    }
-    
-    setErrorMessage(message)
-  }, [])
-
-  // Retry playback
   const handleRetry = useCallback(() => {
     setHasError(false)
     setErrorMessage("")
     setIsReady(false)
-    
-    // Force re-render by updating URL with timestamp
-    // Handle both absolute and relative URLs
     try {
       if (currentUrl.startsWith("http://") || currentUrl.startsWith("https://")) {
         const url = new URL(currentUrl)
         url.searchParams.set("_t", Date.now().toString())
         setCurrentUrl(url.toString())
       } else {
-        // For relative URLs, append query parameter manually
         const separator = currentUrl.includes("?") ? "&" : "?"
         setCurrentUrl(`${currentUrl}${separator}_t=${Date.now()}`)
       }
     } catch {
-      // Fallback: just append timestamp
       const separator = currentUrl.includes("?") ? "&" : "?"
       setCurrentUrl(`${currentUrl}${separator}_t=${Date.now()}`)
     }
   }, [currentUrl])
 
-  const [isSeeking, setIsSeeking] = useState(false)
-
-  // Calculate seek position from mouse/touch event
   const calculateSeekPosition = useCallback((clientX: number) => {
     if (!progressRef.current) return null
     const rect = progressRef.current.getBoundingClientRect()
-    if (rect.width === 0) return null
     if (rect.width === 0) return null
     const x = clientX - rect.left
     return Math.max(0, Math.min(1, x / rect.width))
   }, [])
 
-  // Handle drag start on progress bar
+  const seekToFraction = useCallback((fraction: number) => {
+    if (videoRef.current && duration > 0) {
+      videoRef.current.currentTime = fraction * duration
+    }
+  }, [duration])
+
   const handleSeekMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation()
       e.preventDefault()
       setIsSeeking(true)
-      
       const percentage = calculateSeekPosition(e.clientX)
-      if (percentage !== null && playerRef.current) {
-        playerRef.current.seekTo(percentage, "fraction")
-      }
+      if (percentage !== null) seekToFraction(percentage)
     },
-    [calculateSeekPosition],
+    [calculateSeekPosition, seekToFraction],
   )
 
-  // Handle mouse drag on progress bar (global listeners for smooth seeking)
   useEffect(() => {
     if (!isSeeking) return
-
     const handleMouseMove = (e: MouseEvent) => {
       const percentage = calculateSeekPosition(e.clientX)
-      if (percentage !== null && playerRef.current) {
-        playerRef.current.seekTo(percentage, "fraction")
-      }
+      if (percentage !== null) seekToFraction(percentage)
     }
-
-    const handleMouseUp = () => {
-      setIsSeeking(false)
-    }
-
+    const handleMouseUp = () => setIsSeeking(false)
     window.addEventListener("mousemove", handleMouseMove)
     window.addEventListener("mouseup", handleMouseUp)
-
     return () => {
       window.removeEventListener("mousemove", handleMouseMove)
       window.removeEventListener("mouseup", handleMouseUp)
     }
-  }, [isSeeking, calculateSeekPosition])
+  }, [isSeeking, calculateSeekPosition, seekToFraction])
 
-  // Handle touch events for mobile seeking
   const handleTouchStart = useCallback(
     (e: React.TouchEvent<HTMLDivElement>) => {
       e.stopPropagation()
       setIsSeeking(true)
-      
       const touch = e.touches[0]
       const percentage = calculateSeekPosition(touch.clientX)
-      if (percentage !== null && playerRef.current) {
-        playerRef.current.seekTo(percentage, "fraction")
-      }
+      if (percentage !== null) seekToFraction(percentage)
     },
-    [calculateSeekPosition],
+    [calculateSeekPosition, seekToFraction],
   )
 
-  // Handle touch drag on progress bar (global listeners for smooth seeking)
   useEffect(() => {
     if (!isSeeking) return
-
     const handleTouchMoveGlobal = (e: TouchEvent) => {
       const touch = e.touches[0]
       if (!touch) return
       const percentage = calculateSeekPosition(touch.clientX)
-      if (percentage !== null && playerRef.current) {
-        playerRef.current.seekTo(percentage, "fraction")
-      }
+      if (percentage !== null) seekToFraction(percentage)
     }
-
-    const handleTouchEndGlobal = () => {
-      setIsSeeking(false)
-    }
-
+    const handleTouchEndGlobal = () => setIsSeeking(false)
     window.addEventListener("touchmove", handleTouchMoveGlobal)
     window.addEventListener("touchend", handleTouchEndGlobal)
     window.addEventListener("touchcancel", handleTouchEndGlobal)
-
     return () => {
       window.removeEventListener("touchmove", handleTouchMoveGlobal)
       window.removeEventListener("touchend", handleTouchEndGlobal)
       window.removeEventListener("touchcancel", handleTouchEndGlobal)
     }
-  }, [isSeeking, calculateSeekPosition])
+  }, [isSeeking, calculateSeekPosition, seekToFraction])
 
-  // Skip forward/backward
   const handleSkip = useCallback((seconds: number) => {
-    if (!playerRef.current) return
-    const newTime = Math.max(0, Math.min(duration, currentTime + seconds))
-    playerRef.current.seekTo(newTime, "seconds")
-  }, [currentTime, duration])
+    if (!videoRef.current) return
+    const newTime = Math.max(0, Math.min(duration, (videoRef.current.currentTime || 0) + seconds))
+    videoRef.current.currentTime = newTime
+  }, [duration])
 
-  // Handle tap on mobile:
-  // - single tap  → show/hide controls
-  // - double tap  → seek -10s (left) or +10s (right)
+  const togglePlayPause = useCallback(() => {
+    const vid = videoRef.current
+    if (!vid) return
+    if (vid.paused) {
+      vid.play().catch(() => {})
+    } else {
+      vid.pause()
+    }
+  }, [])
+
   const handleTap = useCallback((e: React.MouseEvent) => {
     if (!isMobile) {
-      // Desktop: simple click to play/pause
-      setIsPlaying((p) => !p)
+      togglePlayPause()
       return
     }
 
@@ -347,30 +393,22 @@ export function VideoPlayer({
     const isDoubleTap = timeDiff < 300
 
     if (isDoubleTap) {
-      // Cancel the pending single-tap action
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current)
         singleTapTimerRef.current = null
       }
-      // Seek left or right
       const isLeftSide = clientX < rect.left + rect.width / 2
       handleSkip(isLeftSide ? -10 : 10)
       setDoubleTapSide(isLeftSide ? "left" : "right")
       setTimeout(() => setDoubleTapSide(null), 600)
-      // Reset so a 3rd tap doesn't re-trigger double tap
       lastTapRef.current = { time: 0, x: 0 }
     } else {
-      // Record this tap and wait to see if a second tap comes
       lastTapRef.current = { time: now, x: clientX }
       singleTapTimerRef.current = setTimeout(() => {
-        // No second tap arrived — it's a real single tap: toggle controls
         setShowControls((prev) => {
           const newState = !prev
-          // If showing controls, reset the auto-hide timer
           if (newState) {
-            if (hideControlsTimeout.current) {
-              clearTimeout(hideControlsTimeout.current)
-            }
+            if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
             hideControlsTimeout.current = setTimeout(() => {
               if (isPlaying) {
                 setShowControls(false)
@@ -379,30 +417,26 @@ export function VideoPlayer({
                 setShowSubtitleMenu(false)
                 setShowSettingsPanel(false)
               }
-            }, 4000) // 4 seconds on mobile for more time to interact
+            }, 4000)
           }
           return newState
         })
         singleTapTimerRef.current = null
       }, 300)
     }
-  }, [isMobile, handleSkip, isPlaying])
+  }, [isMobile, handleSkip, isPlaying, togglePlayPause])
 
-  // Toggle fullscreen
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return
-
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {
-        // Fullscreen may not be available in all contexts (e.g., iframes)
-      })
+      containerRef.current.requestFullscreen().catch(() => {})
     } else {
       document.exitFullscreen()
     }
   }, [])
 
-  // Format time display
   const formatTime = useCallback((seconds: number) => {
+    if (!isFinite(seconds) || seconds < 0) return "0:00"
     const hrs = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
     const secs = Math.floor(seconds % 60)
@@ -412,7 +446,6 @@ export function VideoPlayer({
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }, [])
 
-  // Fullscreen detection
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
@@ -421,14 +454,13 @@ export function VideoPlayer({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange)
   }, [])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case " ":
         case "k":
           e.preventDefault()
-          setIsPlaying((p) => !p)
+          togglePlayPause()
           break
         case "ArrowLeft":
           e.preventDefault()
@@ -440,42 +472,48 @@ export function VideoPlayer({
           break
         case "ArrowUp":
           e.preventDefault()
-          setVolume((v) => Math.min(1, v + 0.1))
+          setVolume((v) => {
+            const newVol = Math.min(1, v + 0.1)
+            if (videoRef.current) videoRef.current.volume = newVol
+            return newVol
+          })
           break
         case "ArrowDown":
           e.preventDefault()
-          setVolume((v) => Math.max(0, v - 0.1))
+          setVolume((v) => {
+            const newVol = Math.max(0, v - 0.1)
+            if (videoRef.current) videoRef.current.volume = newVol
+            return newVol
+          })
           break
         case "m":
-          setIsMuted((m) => !m)
+          setIsMuted((m) => {
+            const newMuted = !m
+            if (videoRef.current) videoRef.current.muted = newMuted
+            return newMuted
+          })
           break
         case "f":
           toggleFullscreen()
           break
         case "Escape":
-          if (onClose && !isFullscreen) {
-            onClose()
-          }
+          if (onClose && !isFullscreen) onClose()
           break
       }
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [handleSkip, toggleFullscreen, onClose, isFullscreen])
+  }, [handleSkip, toggleFullscreen, onClose, isFullscreen, togglePlayPause])
 
-  // Auto-enter fullscreen on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       if (containerRef.current && !document.fullscreenElement) {
-        containerRef.current.requestFullscreen().catch(() => {
-          // Fullscreen may not be available in all contexts (e.g., iframes)
-        })
+        containerRef.current.requestFullscreen().catch(() => {})
       }
     }, 500)
     return () => clearTimeout(timer)
   }, [])
 
-  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
@@ -500,56 +538,21 @@ export function VideoPlayer({
         setShowSubtitleMenu(false)
       }}
     >
-      {/* React Player */}
       <div className="absolute inset-0">
-        {currentUrl && (
-          <ReactPlayer
-            ref={playerRef}
-            url={currentUrl}
-            playing={isPlaying && !hasError}
-            muted={isMuted}
-            volume={volume}
-            playbackRate={playbackRate}
-            width="100%"
-            height="100%"
-            style={{ position: "absolute", top: 0, left: 0 }}
-            onReady={handleReady}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onBuffer={() => setIsBuffering(true)}
-            onBufferEnd={() => setIsBuffering(false)}
-            onProgress={handleProgress}
-            onDuration={setDuration}
-            onEnded={onEnded}
-            onError={handleError}
-            progressInterval={500}
-            config={{
-              file: {
-                attributes: {
-                  playsInline: true,
-                  poster: poster,
-                },
-                tracks: subtitles.map((sub) => ({
-                  kind: "subtitles" as const,
-                  src: sub.src,
-                  srcLang: sub.language,
-                  label: sub.label,
-                  default: selectedSubtitle === sub.id,
-                })),
-                forceVideo: true,
-              },
-            }}
-          />
-        )}
+        <video
+          ref={videoRef}
+          className="w-full h-full object-contain"
+          playsInline
+          poster={poster}
+          preload="metadata"
+        />
       </div>
 
-      {/* Click/tap overlay — single tap toggles controls (mobile), click plays/pauses (desktop), double tap seeks (mobile) */}
       <div
         className="absolute inset-0 z-10"
         onClick={handleTap}
       />
 
-      {/* Double-tap seek indicator */}
       {doubleTapSide && (
         <div
           className={cn(
@@ -576,7 +579,6 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Top Header Controls */}
       <div
         className={cn(
           "absolute top-0 left-0 right-0 z-[100] flex items-center justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent pt-3 sm:pt-4 pb-12 sm:pb-16 px-3 sm:px-4 transition-opacity duration-300",
@@ -593,9 +595,7 @@ export function VideoPlayer({
           <h2 className="text-sm sm:text-lg font-medium text-white truncate">{title}</h2>
         </div>
 
-        {/* Desktop: individual buttons | Mobile: single settings button */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          {/* Mobile: Single settings button */}
           {isMobile && (
             <button
               onClick={() => setShowSettingsPanel(true)}
@@ -605,10 +605,8 @@ export function VideoPlayer({
             </button>
           )}
 
-          {/* Desktop: Individual menu buttons */}
           {!isMobile && (
             <>
-              {/* Subtitles Menu */}
               {subtitles.length > 0 && (
                 <div className="relative">
                   <button
@@ -657,7 +655,6 @@ export function VideoPlayer({
                 </div>
               )}
 
-              {/* Playback Speed Menu */}
               <div className="relative">
                 <button
                   onClick={() => {
@@ -694,7 +691,6 @@ export function VideoPlayer({
                 )}
               </div>
 
-              {/* Quality Selector */}
               {sources.length > 1 && (
                 <div className="relative">
                   <button
@@ -735,7 +731,6 @@ export function VideoPlayer({
         </div>
       </div>
 
-      {/* Mobile Settings Panel (Bottom Sheet) */}
       {isMobile && showSettingsPanel && (
         <div
           className="fixed inset-0 z-[200] flex items-end justify-center"
@@ -751,12 +746,9 @@ export function VideoPlayer({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Handle bar */}
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-            
             <h3 className="text-lg font-bold text-white mb-4">Settings</h3>
-            
-            {/* Quality Section */}
+
             {sources.length > 1 && (
               <div className="mb-4">
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Quality</p>
@@ -778,8 +770,7 @@ export function VideoPlayer({
                 </div>
               </div>
             )}
-            
-            {/* Playback Speed Section */}
+
             <div className="mb-4">
               <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Playback Speed</p>
               <div className="flex flex-wrap gap-2">
@@ -799,8 +790,7 @@ export function VideoPlayer({
                 ))}
               </div>
             </div>
-            
-            {/* Subtitles Section */}
+
             {subtitles.length > 0 && (
               <div>
                 <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Subtitles</p>
@@ -837,7 +827,6 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Bottom Controls */}
       <div
         className={cn(
           "absolute bottom-0 left-0 right-0 z-[100] bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 sm:pt-16 pb-3 sm:pb-4 px-3 sm:px-4 transition-opacity duration-300",
@@ -845,7 +834,6 @@ export function VideoPlayer({
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Time display above progress bar on mobile */}
         {isMobile && (
           <div className="flex items-center justify-between text-xs text-white/80 mb-1 px-0.5">
             <span className="font-medium tabular-nums">{formatTime(currentTime)}</span>
@@ -853,7 +841,6 @@ export function VideoPlayer({
           </div>
         )}
 
-        {/* Progress Bar - larger touch target on mobile */}
         <div
           ref={progressRef}
           className={cn(
@@ -863,22 +850,18 @@ export function VideoPlayer({
           onMouseDown={handleSeekMouseDown}
           onTouchStart={handleTouchStart}
         >
-          {/* Visual progress bar */}
           <div className={cn(
             "relative bg-white/20 rounded-full transition-all",
             isSeeking ? "h-2.5" : isMobile ? "h-2" : "h-1.5 group-hover:h-2"
           )}>
-            {/* Loaded progress */}
             <div
               className="absolute top-0 left-0 h-full bg-white/40 rounded-full"
               style={{ width: `${loaded * 100}%` }}
             />
-            {/* Played progress */}
             <div
               className="absolute top-0 left-0 h-full bg-primary rounded-full"
               style={{ width: `${played * 100}%` }}
             />
-            {/* Seek handle - larger on mobile */}
             <div
               className={cn(
                 "absolute top-1/2 -translate-y-1/2 bg-white rounded-full shadow-lg transition-transform border-2 border-primary",
@@ -890,12 +873,10 @@ export function VideoPlayer({
           </div>
         </div>
 
-        {/* Control Buttons */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Play/Pause - larger touch target */}
             <button
-              onClick={() => setIsPlaying((p) => !p)}
+              onClick={togglePlayPause}
               className="p-2 sm:p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
             >
               {isPlaying ? (
@@ -905,7 +886,6 @@ export function VideoPlayer({
               )}
             </button>
 
-            {/* Skip buttons - hidden on very small mobile, visible on larger */}
             <button
               onClick={() => handleSkip(-10)}
               className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors hidden xs:flex"
@@ -920,11 +900,14 @@ export function VideoPlayer({
               <SkipForward className="h-5 w-5 text-white" />
             </button>
 
-            {/* Volume - hide on mobile (use device volume) */}
             {!isMobile && (
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsMuted((m) => !m)}
+                  onClick={() => {
+                    const newMuted = !isMuted
+                    setIsMuted(newMuted)
+                    if (videoRef.current) videoRef.current.muted = newMuted
+                  }}
                   className="p-2 rounded-full hover:bg-white/10 transition-colors"
                 >
                   {isMuted || volume === 0 ? (
@@ -940,15 +923,19 @@ export function VideoPlayer({
                   step={0.05}
                   value={isMuted ? 0 : volume}
                   onChange={(e) => {
-                    setVolume(parseFloat(e.target.value))
+                    const newVol = parseFloat(e.target.value)
+                    setVolume(newVol)
                     setIsMuted(false)
+                    if (videoRef.current) {
+                      videoRef.current.volume = newVol
+                      videoRef.current.muted = false
+                    }
                   }}
                   className="w-20 h-1 bg-white/30 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
                 />
               </div>
             )}
 
-            {/* Time Display - hidden on mobile (shown above progress bar) */}
             {!isMobile && (
               <span className="text-white text-sm font-medium ml-2 tabular-nums">
                 {formatTime(currentTime)} / {formatTime(duration)}
@@ -956,9 +943,7 @@ export function VideoPlayer({
             )}
           </div>
 
-          {/* Right Controls */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}
               className="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
@@ -973,7 +958,6 @@ export function VideoPlayer({
         </div>
       </div>
 
-      {/* Next Episode Button - responsive positioning */}
       {showNextEpisode && nextEpisode && (
         <div
           className={cn(
@@ -995,7 +979,6 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Center Play Button (when paused) - responsive size */}
       {!isPlaying && !isBuffering && !hasError && isReady && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className={cn(
@@ -1007,14 +990,12 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Buffering Indicator */}
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-50">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       )}
 
-      {/* Error State */}
       {hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50 gap-4 p-8">
           <AlertCircle className="h-16 w-16 text-red-500" />
@@ -1043,7 +1024,6 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Loading Indicator (initial load) */}
       {!isReady && !hasError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-50 gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
