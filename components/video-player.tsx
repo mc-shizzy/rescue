@@ -27,6 +27,7 @@ export interface VideoPlayerProps {
   onClose?: () => void
   autoPlay?: boolean
   startTime?: number
+  initialDuration?: number
   onTimeUpdate?: (currentTime: number) => void
   onEnded?: () => void
   nextEpisode?: { title: string; onPlay: () => void }
@@ -40,6 +41,7 @@ export function VideoPlayer({
   onClose,
   autoPlay = true,
   startTime = 0,
+  initialDuration = 0,
   onTimeUpdate,
   onEnded,
   nextEpisode,
@@ -55,7 +57,7 @@ export function VideoPlayer({
   const [volume, setVolume] = useState(1)
   const [played, setPlayed] = useState(0)
   const [loaded, setLoaded] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [duration, setDuration] = useState(initialDuration)
   const [currentTime, setCurrentTime] = useState(0)
   const [isBuffering, setIsBuffering] = useState(false)
   const [showControls, setShowControls] = useState(true)

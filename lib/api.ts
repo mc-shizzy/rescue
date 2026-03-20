@@ -204,6 +204,7 @@ export interface NormalizedContent {
   description: string
   releaseDate: string
   duration: string
+  durationSeconds: number
   genre: string[]
   poster: string
   backdrop: string
@@ -228,6 +229,7 @@ export interface NormalizedContent {
       episodeNumber: number
       title: string
       duration: string
+      durationSeconds: number
     }[]
   }[]
 }
@@ -278,6 +280,7 @@ function normalizeSubject(subject: APISubject): NormalizedContent {
     description: subject.description || "No description available.",
     releaseDate: subject.releaseDate || "",
     duration: formatDuration(subject.duration),
+    durationSeconds: subject.duration || 0,
     genre: subject.genre ? subject.genre.split(",").map((g) => g.trim()) : [],
     poster: subject.cover?.url || "/abstract-movie-poster.png",
     backdrop: subject.backdrop?.url || subject.cover?.url || "/movie-backdrop.png",
@@ -298,6 +301,7 @@ function normalizeSubject(subject: APISubject): NormalizedContent {
         episodeNumber: ep.episodeNumber,
         title: ep.title || `Episode ${ep.episodeNumber}`,
         duration: formatDuration(ep.duration),
+        durationSeconds: ep.duration || 0,
       })),
     })),
   }
@@ -343,7 +347,8 @@ function normalizeSubjectWithInfo(
         episodes: Array.from({ length: s.maxEp }, (_, i) => ({
           episodeNumber: i + 1,
           title: `Episode ${i + 1}`,
-          duration: formatDuration(0), // Duration not available from resource, will be fetched on play
+          duration: formatDuration(0),
+          durationSeconds: 0,
         })),
       }))
     }

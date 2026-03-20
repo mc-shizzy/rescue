@@ -374,6 +374,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
             poster={movie.backdrop || movie.poster}
             sources={videoSources}
             subtitles={subtitles}
+            initialDuration={activeContent.durationSeconds}
             onClose={() => setShowPlayer(false)}
             autoPlay
           />
