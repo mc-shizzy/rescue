@@ -167,7 +167,7 @@ export function Navbar() {
 
           {/* Download App — mobile menu */}
           <a
-            href="https://github.com/mc-shizzy/Apkhandy-/releases/download/v2.1/HandyFlix.apk"
+            href="https://github.com/mc-shizzy/Apkhandy-/releases/download/3.0/HandyFlix.apk"
             download
             onClick={() => setMobileMenuOpen(false)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200"
@@ -298,7 +298,7 @@ export function Navbar() {
 
               {/* Download App CTA — Android only */}
               <a
-                href="https://github.com/mc-shizzy/Apkhandy-/releases/download/v2.1/HandyFlix.apk"
+                href="https://github.com/mc-shizzy/Apkhandy-/releases/download/3.0/HandyFlix.apk"
                 download
                 className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-[1.03] active:scale-95"
                 style={{

@@ -5,7 +5,7 @@ export const revalidate = 300 // Cache for 5 minutes
 export async function GET() {
   try {
     const res = await fetch(
-      "https://api.github.com/repos/mc-shizzy/Apkhandy-/releases/tags/v2.1",
+      "https://api.github.com/repos/mc-shizzy/Apkhandy-/releases/tags/3.0",
       {
         headers: {
           Accept: "application/vnd.github+json",

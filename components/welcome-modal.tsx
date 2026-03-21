@@ -170,7 +170,7 @@ export function WelcomeModal({ show }: WelcomeModalProps) {
           {/* Download App button — only for Android */}
           {deviceType === "android" ? (
             <a
-              href="https://github.com/mc-shizzy/Apkhandy-/releases/download/v2.1/HandyFlix.apk"
+              href="https://github.com/mc-shizzy/Apkhandy-/releases/download/3.0/HandyFlix.apk"
               download
               onClick={handleClose}
               className="w-full py-3.5 rounded-2xl text-sm font-bold text-white relative overflow-hidden flex items-center justify-center gap-2 active:scale-95 transition-transform duration-150"
