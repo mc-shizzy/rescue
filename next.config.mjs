@@ -4,7 +4,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    // Enable image optimization for better performance
     remotePatterns: [
       {
         protocol: 'https',
@@ -12,6 +11,7 @@ const nextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['*'],
 }
 
 export default nextConfig
