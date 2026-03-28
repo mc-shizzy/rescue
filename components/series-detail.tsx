@@ -49,7 +49,10 @@ export function SeriesDetail({ series, frenchVersion }: SeriesDetailProps) {
     setSelectedSeason(firstSeason)
   }, [selectedLang, frenchVersion, series])
 
+  const SMARTLINK = "https://wayanatomyunavailable.com/jii6kzj5z?key=113992b7b0e3f198a058a3cd8d7f54a4"
+
   const handleToggleMyList = () => {
+    window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     const { isInList } = toggleMyList(series.id)
     setInMyList(isInList)
   }

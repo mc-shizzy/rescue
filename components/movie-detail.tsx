@@ -43,7 +43,10 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
     setShowPlayer(false)
   }, [selectedLang])
 
+  const SMARTLINK = "https://wayanatomyunavailable.com/jii6kzj5z?key=113992b7b0e3f198a058a3cd8d7f54a4"
+
   const handleToggleMyList = () => {
+    window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     const { isInList } = toggleMyList(movie.id)
     setInMyList(isInList)
   }
@@ -68,6 +71,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
   }
 
   const handleDownload = async () => {
+    window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     if (sources?.videos?.length) { setShowDownloadOptions(true); return }
     setIsLoadingDownload(true)
     try {

@@ -67,9 +67,12 @@ export function ContentPreviewModal({ item, onClose }: ContentPreviewModalProps)
     setTimeout(() => router.push(url), 150)
   }, [item, router, handleClose])
 
+  const SMARTLINK = "https://wayanatomyunavailable.com/jii6kzj5z?key=113992b7b0e3f198a058a3cd8d7f54a4"
+
   const handleToggleList = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (!item) return
+    window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     const { isInList } = toggleMyList(item.id)
     setInMyList(isInList)
   }, [item])
