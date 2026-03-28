@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "build:cloudflare": "opennextjs-cloudflare build",
-    "deploy": "opennextjs-cloudflare build && wrangler deploy",
+    "build:cloudflare": "opennextjs-cloudflare build && node -e \"const fs=require('fs'),p='.open-next/cloudflare/next-env.mjs';if(fs.existsSync(p)){const lines=fs.readFileSync(p,'utf8').trim().split('\\n');fs.writeFileSync(p,[...new Set(lines)].join('\\n')+'\\n');}\"",
+    "deploy": "pnpm build:cloudflare && wrangler deploy",
     "dev": "next dev -p 5000",
     "lint": "eslint .",
     "start": "next start"
