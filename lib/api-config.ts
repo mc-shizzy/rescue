@@ -1,5 +1,5 @@
 // API Configuration - Change this URL when the backend domain changes
-export const API_BASE_URL = "https://summer-band-35d2.athulakumara604.workers.dev//api"
+export const API_BASE_URL = "https://summer-band-35d2.athulakumara604.workers.dev/api"
 
 // API Endpoints
 export const API_ENDPOINTS = {
