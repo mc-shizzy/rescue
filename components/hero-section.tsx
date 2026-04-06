@@ -53,7 +53,19 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
   useEffect(() => {
     if (featuredContent.length === 0) return
     startAutoplay()
-    return () => { if (autoplayRef.current) clearInterval(autoplayRef.current) }
+    // Pause autoplay when tab is not visible to save CPU
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (autoplayRef.current) clearInterval(autoplayRef.current)
+      } else {
+        startAutoplay()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => {
+      if (autoplayRef.current) clearInterval(autoplayRef.current)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
   }, [featuredContent.length, startAutoplay])
 
   // Touch / mouse swipe
@@ -121,13 +133,9 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
           />
         </div>
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/55 to-black/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(135deg, oklch(0.3 0.12 250 / 0.14) 0%, transparent 55%)" }}
-        />
+        {/* Gradient overlays — combined for fewer layers */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
         {/* Inner border shine */}
         <div

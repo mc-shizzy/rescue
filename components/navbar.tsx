@@ -88,9 +88,18 @@ export function Navbar() {
   const router                              = useRouter()
   const pathname                            = usePathname()
 
-  /* ── scroll detection ── */
+  /* ── scroll detection (RAF-throttled) ── */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
+    let ticking = false
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 20)
+          ticking = false
+        })
+        ticking = true
+      }
+    }
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
@@ -194,12 +203,12 @@ export function Navbar() {
           background: scrolled
             ? "oklch(0.07 0.025 260 / 0.92)"
             : "oklch(0.07 0.025 260 / 0.0)",
-          backdropFilter: scrolled ? "blur(28px) saturate(180%)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(28px) saturate(180%)" : "none",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
           borderBottom: scrolled
             ? "1px solid oklch(0.7 0.05 240 / 0.10)"
             : "1px solid transparent",
-          boxShadow: scrolled ? "0 4px 32px oklch(0 0 0 / 0.35)" : "none",
+          boxShadow: scrolled ? "0 4px 24px oklch(0 0 0 / 0.3)" : "none",
         }}
       >
         <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8">

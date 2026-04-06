@@ -230,8 +230,8 @@ export default function RootLayout({
       </head>
       <body className={`font-sans antialiased`}>
         {children}
-        {/* Adsterra Social Bar */}
-        <script async src="https://wayanatomyunavailable.com/7b/df/c9/7bdfc9c3bd15887176bd1cee393e65a4.js" />
+        {/* Adsterra Social Bar — deferred to not block rendering */}
+        <script defer src="https://wayanatomyunavailable.com/7b/df/c9/7bdfc9c3bd15887176bd1cee393e65a4.js" />
         <Analytics />
       </body>
     </html>

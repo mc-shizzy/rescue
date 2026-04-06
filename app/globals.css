@@ -130,11 +130,9 @@
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Ambient floating orbs via background */
+    /* Single lightweight ambient gradient instead of 3 stacked radial-gradients */
     background-image:
-      radial-gradient(ellipse 80vw 60vh at 20% 10%, oklch(0.35 0.12 255 / 0.12) 0%, transparent 70%),
-      radial-gradient(ellipse 60vw 50vh at 80% 80%, oklch(0.3 0.1 220 / 0.1) 0%, transparent 70%),
-      radial-gradient(ellipse 40vw 40vh at 50% 50%, oklch(0.25 0.08 270 / 0.07) 0%, transparent 70%);
+      radial-gradient(ellipse 80vw 60vh at 30% 30%, oklch(0.2 0.06 255 / 0.08) 0%, transparent 70%);
   }
   html {
     scroll-behavior: smooth;
@@ -147,30 +145,25 @@
 /* ---- Glass utility class ---- */
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   border: 1px solid var(--glass-border);
-  box-shadow:
-    inset 0 1px 0 var(--glass-shine),
-    0 8px 32px oklch(0 0 0 / 0.4);
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.3);
 }
 
 .glass-card {
-  background: oklch(0.13 0.03 255 / 0.5);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: oklch(0.13 0.03 255 / 0.6);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
   border: 1px solid oklch(0.6 0.06 240 / 0.12);
-  box-shadow:
-    inset 0 1px 0 oklch(1 0 0 / 0.07),
-    0 4px 24px oklch(0 0 0 / 0.5);
+  box-shadow: 0 2px 12px oklch(0 0 0 / 0.4);
 }
 
 .glass-pill {
-  background: oklch(0.18 0.04 255 / 0.6);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  background: oklch(0.18 0.04 255 / 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid oklch(0.7 0.05 240 / 0.18);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1);
 }
 
 /* Hide scrollbar utility */
@@ -198,13 +191,12 @@
   background: oklch(0.58 0.22 245 / 0.8);
 }
 
-/* GPU acceleration */
+/* GPU acceleration & containment */
 .group\/card {
   transform: translateZ(0);
   backface-visibility: hidden;
-  contain: layout;
+  contain: layout style paint;
 }
-.group\/card:hover { will-change: transform; }
 
 .scroll-smooth {
   scroll-behavior: smooth;
@@ -270,12 +262,12 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Floating ambient orbs */
+/* Floating ambient orbs - disabled for performance, use static opacity instead */
 .orb-blue {
-  animation: glow-pulse 6s ease-in-out infinite;
+  opacity: 0.5;
 }
 .orb-indigo {
-  animation: glow-pulse 8s ease-in-out infinite 2s;
+  opacity: 0.4;
 }
 
 /* ---- Splash screen keyframes ---- */
@@ -291,19 +283,16 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   100% { opacity: 0.4; }
 }
 
-/* Glass card hover lift */
+/* Glass card hover lift — simplified for performance */
 .card-hover {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
 }
 .card-hover:hover {
-  transform: translateY(-4px) scale(1.03);
-  box-shadow:
-    0 20px 60px oklch(0 0 0 / 0.6),
-    0 0 0 1px oklch(0.6 0.15 245 / 0.25),
-    inset 0 1px 0 oklch(1 0 0 / 0.1);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 32px oklch(0 0 0 / 0.5);
 }
 
-/* Shine sweep on hover */
+/* Shine sweep on hover — use will-change only during hover for GPU layer promotion */
 .shine-hover {
   position: relative;
   overflow: hidden;
@@ -312,20 +301,19 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 40%, oklch(1 0 0 / 0.08) 50%, transparent 60%);
+  background: linear-gradient(105deg, transparent 40%, oklch(1 0 0 / 0.06) 50%, transparent 60%);
   transform: translateX(-100%);
-  transition: transform 0.5s ease;
+  transition: transform 0.4s ease;
+  pointer-events: none;
 }
 .shine-hover:hover::after {
   transform: translateX(100%);
+  will-change: transform;
 }
 
-/* Section title glow */
+/* Section title — use simple color instead of gradient-clip for performance */
 .section-title {
-  background: linear-gradient(135deg, oklch(0.97 0.005 240) 0%, oklch(0.75 0.08 240) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: oklch(0.92 0.02 240);
 }
 
 /* Animated blue line under section titles */
