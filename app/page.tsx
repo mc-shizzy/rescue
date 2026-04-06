@@ -112,28 +112,57 @@ export default function HomePage() {
     loadContent()
   }, [])
 
-  // Memoize expensive filtering operations
-  const filteredContent = useMemo(() =>
-    selectedGenre === "All"
+  // Memoize expensive filtering operations — single pass
+  const { filteredContent, movies, series, topContent, heroContent, genreContent } = useMemo(() => {
+    const filtered = selectedGenre === "All"
       ? content
-      : content.filter((item) => item.genre.some((g) => g.toLowerCase().includes(selectedGenre.toLowerCase()))),
-    [content, selectedGenre]
-  )
+      : content.filter((item) => item.genre.some((g) => g.toLowerCase().includes(selectedGenre.toLowerCase())))
 
-  const movies = useMemo(() => content.filter((item) => item.type === "movie"), [content])
-  const series = useMemo(() => content.filter((item) => item.type === "series"), [content])
-  const topContent = useMemo(() => [...content].sort((a, b) => b.rating - a.rating).slice(0, 10), [content])
-  const heroContent = useMemo(() => content.slice(0, 5), [content])
-  
-  const actionContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("action"))), [content])
-  const dramaContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("drama"))), [content])
-  const comedyContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("comedy"))), [content])
-  const horrorContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("horror"))), [content])
-  const romanceContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("romance"))), [content])
-  const sciFiContent = useMemo(() => content.filter((m) =>
-    m.genre.some((g) => g.toLowerCase().includes("sci-fi") || g.toLowerCase().includes("fantasy")),
-  ), [content])
-  const thrillerContent = useMemo(() => content.filter((m) => m.genre.some((g) => g.toLowerCase().includes("thriller"))), [content])
+    const moviesArr: NormalizedContent[] = []
+    const seriesArr: NormalizedContent[] = []
+    const actionArr: NormalizedContent[] = []
+    const dramaArr: NormalizedContent[] = []
+    const comedyArr: NormalizedContent[] = []
+    const horrorArr: NormalizedContent[] = []
+    const romanceArr: NormalizedContent[] = []
+    const sciFiArr: NormalizedContent[] = []
+    const thrillerArr: NormalizedContent[] = []
+
+    for (const item of content) {
+      if (item.type === "movie") moviesArr.push(item)
+      else if (item.type === "series") seriesArr.push(item)
+      const genres = item.genre.map(g => g.toLowerCase())
+      for (const g of genres) {
+        if (g.includes("action")) actionArr.push(item)
+        if (g.includes("drama")) dramaArr.push(item)
+        if (g.includes("comedy")) comedyArr.push(item)
+        if (g.includes("horror")) horrorArr.push(item)
+        if (g.includes("romance")) romanceArr.push(item)
+        if (g.includes("sci-fi") || g.includes("fantasy")) sciFiArr.push(item)
+        if (g.includes("thriller")) thrillerArr.push(item)
+      }
+    }
+
+    const top = [...content].sort((a, b) => b.rating - a.rating).slice(0, 10)
+    const hero = content.slice(0, 5)
+
+    return {
+      filteredContent: filtered,
+      movies: moviesArr,
+      series: seriesArr,
+      topContent: top,
+      heroContent: hero,
+      genreContent: {
+        action: actionArr,
+        drama: dramaArr,
+        comedy: comedyArr,
+        horror: horrorArr,
+        romance: romanceArr,
+        sciFi: sciFiArr,
+        thriller: thrillerArr,
+      },
+    }
+  }, [content, selectedGenre])
 
   const handleGenreChange = useCallback((genre: string) => {
     setSelectedGenre(genre)
@@ -180,13 +209,13 @@ export default function HomePage() {
                 <>
                   {series.length > 0 && <PremiumCarousel title="TV Series" items={series} variant="large" />}
                   {movies.length > 0 && <PremiumCarousel title="Movies" items={movies} />}
-                  {actionContent.length > 0 && <PremiumCarousel title="Action & Adventure" items={actionContent} />}
-                  {dramaContent.length > 0 && <PremiumCarousel title="Drama" items={dramaContent} />}
-                  {comedyContent.length > 0 && <PremiumCarousel title="Comedy" items={comedyContent} />}
-                  {horrorContent.length > 0 && <PremiumCarousel title="Horror" items={horrorContent} />}
-                  {romanceContent.length > 0 && <PremiumCarousel title="Romance" items={romanceContent} />}
-                  {thrillerContent.length > 0 && <PremiumCarousel title="Thriller" items={thrillerContent} />}
-                  {sciFiContent.length > 0 && <PremiumCarousel title="Sci-Fi & Fantasy" items={sciFiContent} />}
+                  {genreContent.action.length > 0 && <PremiumCarousel title="Action & Adventure" items={genreContent.action} />}
+                  {genreContent.drama.length > 0 && <PremiumCarousel title="Drama" items={genreContent.drama} />}
+                  {genreContent.comedy.length > 0 && <PremiumCarousel title="Comedy" items={genreContent.comedy} />}
+                  {genreContent.horror.length > 0 && <PremiumCarousel title="Horror" items={genreContent.horror} />}
+                  {genreContent.romance.length > 0 && <PremiumCarousel title="Romance" items={genreContent.romance} />}
+                  {genreContent.thriller.length > 0 && <PremiumCarousel title="Thriller" items={genreContent.thriller} />}
+                  {genreContent.sciFi.length > 0 && <PremiumCarousel title="Sci-Fi & Fantasy" items={genreContent.sciFi} />}
                 </>
               )}
             </>

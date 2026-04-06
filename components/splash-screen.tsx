@@ -33,7 +33,7 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
         if (!isLoading && p >= 100) { clearInterval(progressRef.current!); return 100 }
         return p + (isLoading ? Math.random() * 5 + 1 : Math.random() * 12 + 8)
       })
-    }, 80)
+    }, 120)
     return () => { if (progressRef.current) clearInterval(progressRef.current) }
   }, [phase, isLoading])
 
@@ -71,21 +71,7 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
       <div
         className="absolute inset-0"
         style={{
-          background: "radial-gradient(ellipse 80% 60% at 50% 45%, oklch(0.15 0.12 250 / 0.5) 0%, transparent 70%)",
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "radial-gradient(ellipse 50% 40% at 30% 60%, oklch(0.12 0.08 280 / 0.3) 0%, transparent 70%)",
-        }}
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "radial-gradient(ellipse 40% 35% at 75% 35%, oklch(0.12 0.06 220 / 0.25) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 70% 50% at 50% 45%, oklch(0.12 0.08 250 / 0.35) 0%, transparent 70%)",
         }}
       />
 
@@ -104,12 +90,12 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
             position: "absolute",
             top: "50%",
             left: "50%",
-            width: isAfter("logo") ? "200vmax" : "0px",
-            height: isAfter("logo") ? "200vmax" : "0px",
+            width: "200vmax",
+            height: "200vmax",
             borderRadius: "50%",
-            transform: "translate(-50%, -50%)",
+            transform: isAfter("logo") ? "translate(-50%, -50%) scale(1)" : "translate(-50%, -50%) scale(0)",
             border: "1px solid oklch(0.4 0.15 245 / 0.08)",
-            transition: "width 2.5s cubic-bezier(0.16,1,0.3,1), height 2.5s cubic-bezier(0.16,1,0.3,1)",
+            transition: "transform 2s cubic-bezier(0.16,1,0.3,1)",
           }}
         />
         <div
@@ -117,12 +103,12 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
             position: "absolute",
             top: "50%",
             left: "50%",
-            width: isAfter("logo") ? "150vmax" : "0px",
-            height: isAfter("logo") ? "150vmax" : "0px",
+            width: "150vmax",
+            height: "150vmax",
             borderRadius: "50%",
-            transform: "translate(-50%, -50%)",
+            transform: isAfter("logo") ? "translate(-50%, -50%) scale(1)" : "translate(-50%, -50%) scale(0)",
             border: "1px solid oklch(0.4 0.15 245 / 0.05)",
-            transition: "width 2s cubic-bezier(0.16,1,0.3,1) 0.2s, height 2s cubic-bezier(0.16,1,0.3,1) 0.2s",
+            transition: "transform 1.8s cubic-bezier(0.16,1,0.3,1) 0.2s",
           }}
         />
       </div>
@@ -139,10 +125,9 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
           <div
             className="absolute inset-0 rounded-3xl"
             style={{
-              background: "oklch(0.58 0.22 245 / 0.4)",
-              filter: "blur(40px)",
-              transform: "scale(1.8)",
-              animation: isAfter("logo") ? "sp-glow 3s ease-in-out infinite" : undefined,
+              background: "oklch(0.58 0.22 245 / 0.3)",
+              filter: "blur(30px)",
+              transform: "scale(1.5)",
             }}
           />
 
@@ -176,7 +161,7 @@ export function SplashScreen({ isLoading = false }: SplashScreenProps) {
               fontSize: "clamp(2.8rem, 9vw, 5.5rem)",
               letterSpacing: "-0.05em",
               color: "oklch(0.58 0.22 245)",
-              textShadow: "0 0 80px oklch(0.58 0.22 245 / 0.5), 0 0 30px oklch(0.58 0.22 245 / 0.3)",
+              textShadow: "0 0 40px oklch(0.58 0.22 245 / 0.3)",
               transform: isAfter("brand") ? "translateY(0)" : "translateY(100%)",
               transition: "transform 0.8s cubic-bezier(0.16,1,0.3,1)",
               display: "inline-block",

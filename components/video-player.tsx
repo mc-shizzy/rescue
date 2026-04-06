@@ -52,6 +52,8 @@ export function VideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
   const hideControlsTimeout = useRef<NodeJS.Timeout>()
+  const timeUpdateRafRef = useRef<number | null>(null)
+  const mouseMoveRafRef = useRef<number | null>(null)
 
   const [isReady, setIsReady] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -91,12 +93,20 @@ export function VideoPlayer({
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
   useEffect(() => {
+    let resizeRaf: number | null = null
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || "ontouchstart" in window)
+      if (resizeRaf !== null) return
+      resizeRaf = requestAnimationFrame(() => {
+        setIsMobile(window.innerWidth < 768 || "ontouchstart" in window)
+        resizeRaf = null
+      })
     }
     checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
+    window.addEventListener("resize", checkMobile, { passive: true })
+    return () => {
+      window.removeEventListener("resize", checkMobile)
+      if (resizeRaf !== null) cancelAnimationFrame(resizeRaf)
+    }
   }, [])
 
   const getDefaultQuality = useMemo(() => {
@@ -140,10 +150,14 @@ export function VideoPlayer({
     }
 
     const onTimeUpdate = () => {
-      if (vid.duration > 0) {
-        setCurrentTime(vid.currentTime)
-        setPlayed(vid.currentTime / vid.duration)
-      }
+      if (timeUpdateRafRef.current !== null) return
+      timeUpdateRafRef.current = requestAnimationFrame(() => {
+        if (vid.duration > 0) {
+          setCurrentTime(vid.currentTime)
+          setPlayed(vid.currentTime / vid.duration)
+        }
+        timeUpdateRafRef.current = null
+      })
     }
 
     const onProgress = () => {
@@ -191,6 +205,10 @@ export function VideoPlayer({
       vid.removeEventListener("canplay", onCanPlay)
       vid.removeEventListener("ended", onEnded_)
       vid.removeEventListener("error", onError)
+      if (timeUpdateRafRef.current !== null) {
+        cancelAnimationFrame(timeUpdateRafRef.current)
+        timeUpdateRafRef.current = null
+      }
     }
   }, [autoPlay, startTime, onEnded])
 
@@ -234,6 +252,10 @@ export function VideoPlayer({
         tt.mode = matchingSub && selectedSubtitle === matchingSub.id ? "showing" : "hidden"
       }
     })
+    return () => {
+      const tracksToRemove = vid.querySelectorAll("track")
+      tracksToRemove.forEach((t) => t.remove())
+    }
   }, [subtitles, selectedSubtitle])
 
   useEffect(() => {
@@ -271,7 +293,11 @@ export function VideoPlayer({
   }, [resetHideTimer])
 
   const handleMouseMove = useCallback(() => {
-    revealControls()
+    if (mouseMoveRafRef.current !== null) return
+    mouseMoveRafRef.current = requestAnimationFrame(() => {
+      revealControls()
+      mouseMoveRafRef.current = null
+    })
   }, [revealControls])
 
   const handleQualityChange = useCallback((quality: string) => {
@@ -474,6 +500,7 @@ export function VideoPlayer({
     return () => {
       if (hideControlsTimeout.current) clearTimeout(hideControlsTimeout.current)
       if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current)
+      if (mouseMoveRafRef.current) cancelAnimationFrame(mouseMoveRafRef.current)
     }
   }, [])
 

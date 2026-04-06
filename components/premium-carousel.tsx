@@ -134,15 +134,19 @@ const ContentCard = memo(function ContentCard({
   const [isHovered, setIsHovered] = useState(false)
   const [inMyList, setInMyList] = useState(false)
   const detailUrl = item.type === "series" ? `/series/${item.id}` : `/movie/${item.id}`
+  const prefetchedRef = useRef(false)
 
   useEffect(() => {
     setInMyList(isInMyList(item.id))
   }, [item.id])
 
-  // Prefetch the route on hover so navigation is instant
+  // Prefetch the route on hover so navigation is instant — only once per card
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true)
-    router.prefetch(detailUrl)
+    if (!prefetchedRef.current) {
+      prefetchedRef.current = true
+      router.prefetch(detailUrl)
+    }
   }, [router, detailUrl])
 
   const handleMouseLeave = useCallback(() => {
@@ -208,9 +212,8 @@ const ContentCard = memo(function ContentCard({
       <div
         className={cn(
           "relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.07]",
-          "transition-all duration-350 ease-out shine-hover",
-          isHovered && "scale-105 shadow-2xl shadow-black/70 z-30 ring-primary/30",
-          isHovered && "shadow-[0_16px_48px_oklch(0_0_0/0.7),0_0_0_1px_oklch(0.58_0.22_245/0.2)]",
+          "transition-all duration-250 ease-out shine-hover",
+          isHovered && "scale-[1.03] shadow-xl shadow-black/60 z-30 ring-primary/25",
         )}
       >
         <Image

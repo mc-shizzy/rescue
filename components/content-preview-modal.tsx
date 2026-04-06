@@ -116,9 +116,9 @@ export function ContentPreviewModal({ item, onClose }: ContentPreviewModalProps)
         background: visible
           ? "oklch(0.03 0.01 260 / 0.85)"
           : "oklch(0.03 0.01 260 / 0)",
-        backdropFilter: visible ? "blur(12px)" : "blur(0px)",
-        WebkitBackdropFilter: visible ? "blur(12px)" : "blur(0px)",
-        transition: "all 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        transition: "background 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
       }}
       aria-modal="true"
       role="dialog"
