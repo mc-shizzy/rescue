@@ -253,7 +253,8 @@ export function VideoPlayer({
       }
     })
     return () => {
-      existingTracks.forEach((t) => t.remove())
+      const tracksToRemove = vid.querySelectorAll("track")
+      tracksToRemove.forEach((t) => t.remove())
     }
   }, [subtitles, selectedSubtitle])
 

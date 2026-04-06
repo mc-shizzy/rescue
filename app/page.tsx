@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Navbar } from "@/components/navbar"
 import { SplashScreen } from "@/components/splash-screen"
 import { WelcomeModal } from "@/components/welcome-modal"
