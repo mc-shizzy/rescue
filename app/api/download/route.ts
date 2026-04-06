@@ -5,9 +5,10 @@ export const runtime = 'edge';
 
 // Trusted domains that the proxy is allowed to redirect to
 const TRUSTED_DOMAINS = [
-  'billowing-river-34ac.asithagunarathna9.workers.dev',
   'bcdnxw.hakunaymatata.com',
   'hakunaymatata.com',
+  'apii.freehandyflix.online',
+  'freehandyflix.online',
 ]
 
 function isUrlTrusted(url: string): boolean {
