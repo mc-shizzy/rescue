@@ -386,7 +386,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
         </div>
       )}
 
-      {showDownloadOptions && sources?.videos && sources.videos.length > 0 && (
+      {/* {showDownloadOptions && sources?.videos && sources.videos.length > 0 && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowDownloadOptions(false)}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div
@@ -434,7 +434,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
             </div>
           </div>
         </div>
-      )}
+      )} */
     </>
   )
 }

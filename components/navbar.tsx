@@ -119,7 +119,7 @@ export function Navbar() {
 
   return (
     <>
-      {showAppModal && <AppComingSoonModal onClose={() => setShowAppModal(false)} />}
+      {/* {showAppModal && <AppComingSoonModal onClose={() => setShowAppModal(false)} />} */}
 
       {/* ── Mobile menu overlay ── */}
       <div
