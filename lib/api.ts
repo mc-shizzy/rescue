@@ -588,20 +588,17 @@ export async function fetchSources(
         })
         .map((source) => {
           const resolution = "quality" in source ? source.quality : source.resolution
-          // V3 API provides a single `url` field for both streaming and download
+          // V3 API returns direct bcdn CDN URLs for both streaming and download
           // Ensure HTTPS to avoid mixed content issues
           const sourceUrl = source.url
-          const streamUrl = sourceUrl.startsWith("http://")
+          const directUrl = sourceUrl.startsWith("http://")
             ? sourceUrl.replace(/^http:\/\//i, "https://")
             : sourceUrl
           
-          // For downloads, proxy through our local endpoint
-          const downloadUrl = `/api/download?url=${encodeURIComponent(sourceUrl)}`
-          
           return {
             quality: `${resolution}p`,
-            src: streamUrl,
-            downloadUrl: downloadUrl,
+            src: directUrl,
+            downloadUrl: directUrl,
             size: source.size,
           }
         })

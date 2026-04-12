@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { API_BASE_URL } from '@/lib/api-config'
 
 export const runtime = 'edge';
 
-// Trusted domains that the proxy is allowed to redirect to
+// Trusted CDN domains that the proxy is allowed to redirect to
+// V3 API returns direct bcdn URLs for streaming/downloads
 const TRUSTED_DOMAINS = [
-  'bcdnxw.hakunaymatata.com',
+  'bcdn.hakunaymatata.com',
   'hakunaymatata.com',
-  'apii.freehandyflix.online',
+  'apiv3.freehandyflix.online',
   'freehandyflix.online',
 ]
 
@@ -42,9 +42,11 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // Redirect to external API's download proxy
-    // The external API handles decoding, fetching from CDN, and streaming with appropriate headers
-    const downloadUrl = `${API_BASE_URL}/download/${encodeURIComponent(url)}`
+    // V3 API returns direct bcdn CDN URLs — redirect straight to them
+    // Ensure HTTPS to avoid mixed content
+    const downloadUrl = url.startsWith('http://')
+      ? url.replace(/^http:\/\//i, 'https://')
+      : url
     
     return NextResponse.redirect(downloadUrl, {
       status: 302,
