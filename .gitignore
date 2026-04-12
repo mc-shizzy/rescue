@@ -30,3 +30,6 @@ next-env.d.ts
 .heroku
 node_modules
 .next
+
+# wrangler temp files
+.wrangler

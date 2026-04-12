@@ -74,24 +74,37 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
     window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     if (sources?.videos?.length) { setShowDownloadOptions(true); return }
     setIsLoadingDownload(true)
+    setSourceError(null)
     try {
       const fetchedSources = await fetchSources(activeContent.id)
       setSources(fetchedSources)
-      if (fetchedSources.videos.length > 0) setShowDownloadOptions(true)
+      if (fetchedSources.videos.length > 0) {
+        setShowDownloadOptions(true)
+      } else {
+        setSourceError("No download sources available for this content.")
+      }
     } catch (error) {
       console.error("Failed to fetch download sources:", error)
+      setSourceError("Failed to load download sources. Please try again.")
     } finally {
       setIsLoadingDownload(false)
     }
   }
 
   const downloadFile = (url: string) => {
-    if (url.startsWith("/api/download")) { window.open(url, "_blank", "noopener,noreferrer"); setShowDownloadOptions(false); return }
+    const trusted = ["bcdn.hakunaymatata.com", "hakunaymatata.com", "apiv3.freehandyflix.online"]
     try {
       const parsed = new URL(url)
-      const trusted = ["bcdn.hakunaymatata.com", "hakunaymatata.com", "apiv3.freehandyflix.online"]
       if (trusted.some((h) => parsed.hostname === h || parsed.hostname.endsWith("." + h))) {
-        window.open(url, "_blank", "noopener,noreferrer")
+        // Route through /api/download proxy for reliable same-origin downloads
+        const proxyUrl = `/api/download?url=${encodeURIComponent(url)}`
+        const a = document.createElement("a")
+        a.href = proxyUrl
+        a.target = "_blank"
+        a.rel = "noopener noreferrer"
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
       }
     } catch { /* noop */ }
     setShowDownloadOptions(false)
