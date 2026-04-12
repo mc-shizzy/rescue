@@ -1,0 +1,1 @@
+{"type":"route","meta":{"status":200,"headers":{"content-type":"application/json","x-next-cache-tags":"_N_T_/layout,_N_T_/api/layout,_N_T_/api/download-stats/layout,_N_T_/api/download-stats/route,_N_T_/api/download-stats"}},"body":"{\"downloads\":2341,\"version\":\"3.0\",\"publishedAt\":\"2026-03-21T15:27:40Z\"}"}
