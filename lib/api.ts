@@ -83,8 +83,7 @@ export interface APICaption {
 export interface APIProcessedSource {
   id: string
   quality: number
-  directUrl: string
-  proxyUrl: string
+  url: string
   size: string
   format: string
 }
@@ -93,8 +92,9 @@ export interface APIProcessedSubtitle {
   id: string
   languageCode: string
   languageName: string
-  directUrl: string
-  proxyUrl: string
+  url: string
+  size?: string
+  delay?: number
   format: string
 }
 
@@ -105,10 +105,10 @@ export interface APISourcesResponse {
     captions: APICaption[]
     processedSources: APIProcessedSource[]
     processedSubtitles?: APIProcessedSubtitle[]
-    limited: boolean
-    limitedCode: string
-    freeNum: number
-    hasResource: boolean
+    limited?: boolean
+    limitedCode?: string
+    freeNum?: number
+    hasResource?: boolean
   }
 }
 
@@ -165,6 +165,8 @@ export interface APISearchResponse {
     pager: {
       hasMore: boolean
       page: string
+      nextPage?: string
+      perPage?: number
       totalCount: number
     }
   }
@@ -200,6 +202,11 @@ export interface APIHomepageResponse {
       uploadBy: string
     }[]
     banner: APISubject[] | null
+    url?: string
+    referer?: string
+    allPlatform?: any[]
+    live?: any
+    shareParam?: any
   }
 }
 
@@ -581,28 +588,17 @@ export async function fetchSources(
         })
         .map((source) => {
           const resolution = "quality" in source ? source.quality : source.resolution
-          // Use the proxyUrl from the API which handles proper streaming
-          // The proxyUrl goes through the API server which handles CORS and streaming
-          // We need to ensure it uses HTTPS to avoid mixed content issues
-          let streamUrl = ""
-          if ("proxyUrl" in source && source.proxyUrl) {
-            // Replace http:// with https:// to avoid mixed content issues
-            streamUrl = source.proxyUrl.replace(/^http:\/\//i, "https://")
-          } else if ("directUrl" in source) {
-            // Fallback to directUrl through our local proxy
-            streamUrl = `/api/download?url=${encodeURIComponent(source.directUrl)}`
-          } else {
-            streamUrl = `/api/download?url=${encodeURIComponent(source.url)}`
-          }
-          
-          // For downloads, use the directUrl through our proxy
-          const directVideoUrl = "directUrl" in source ? source.directUrl : source.url
-          const downloadUrl = `/api/download?url=${encodeURIComponent(directVideoUrl)}`
+          // V3 API returns direct bcdn CDN URLs for both streaming and download
+          // Ensure HTTPS to avoid mixed content issues
+          const sourceUrl = source.url
+          const directUrl = sourceUrl.startsWith("http://")
+            ? sourceUrl.replace(/^http:\/\//i, "https://")
+            : sourceUrl
           
           return {
             quality: `${resolution}p`,
-            src: streamUrl,
-            downloadUrl: downloadUrl,
+            src: directUrl,
+            downloadUrl: directUrl,
             size: source.size,
           }
         })
@@ -613,7 +609,7 @@ export async function fetchSources(
             id: sub.id,
             label: sub.languageName,
             language: sub.languageCode,
-            src: `/api/subtitles?url=${encodeURIComponent(sub.proxyUrl)}`,
+            src: `/api/subtitles?url=${encodeURIComponent(sub.url)}`,
           }))
         : (json.data.captions || []).map((caption) => ({
             id: caption.id,
@@ -625,7 +621,7 @@ export async function fetchSources(
       return {
         videos,
         subtitles,
-        hasResource: json.data.hasResource,
+        hasResource: json.data.hasResource ?? false,
       }
     }
     return { videos: [], subtitles: [], hasResource: false }

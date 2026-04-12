@@ -89,7 +89,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
     if (url.startsWith("/api/download")) { window.open(url, "_blank", "noopener,noreferrer"); setShowDownloadOptions(false); return }
     try {
       const parsed = new URL(url)
-      const trusted = ["testmovieboxapi-ab2c4c4adb04.herokuapp.com", "bcdnxw.hakunaymatata.com", "hakunaymatata.com"]
+      const trusted = ["bcdn.hakunaymatata.com", "hakunaymatata.com", "apiv3.freehandyflix.online"]
       if (trusted.some((h) => parsed.hostname === h || parsed.hostname.endsWith("." + h))) {
         window.open(url, "_blank", "noopener,noreferrer")
       }

@@ -31,7 +31,7 @@ function srtToVtt(srt: string): string {
 }
 
 const ALLOWED_HOSTS = [
-  "apii.freehandyflix.online",
+  "apiv3.freehandyflix.online",
   "cacdn.hakunaymatata.com",
 ]
 
