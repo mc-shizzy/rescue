@@ -624,7 +624,7 @@ export async function fetchSources(
       return {
         videos,
         subtitles,
-        hasResource: json.data.hasResource ?? true,
+        hasResource: json.data.hasResource ?? false,
       }
     }
     return { videos: [], subtitles: [], hasResource: false }
