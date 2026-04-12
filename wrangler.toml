@@ -4,6 +4,9 @@ compatibility_flags = ["nodejs_compat"]
 
 main = ".open-next/worker.js"
 
+[vars]
+NEXT_PUBLIC_HANDYFLIX_API_KEY = "shizzy6916"
+
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
