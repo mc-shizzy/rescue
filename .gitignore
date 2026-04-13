@@ -34,3 +34,4 @@ node_modules
 # cloudflare
 .open-next/
 .wrangler/
+.pnpm-approve-builds.json
