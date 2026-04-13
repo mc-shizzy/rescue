@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server"
 const ALLOWED_ORIGINS = [
   "https://freehandyflix.online",
   "https://www.freehandyflix.online",
-  // Add your Cloudflare Workers dev domain too
+  "https://rescue.josephharrysonmarc.workers.dev",
+  // Catch-all for any *.workers.dev subdomain
   /^https:\/\/.*\.workers\.dev$/,
 ]
 
