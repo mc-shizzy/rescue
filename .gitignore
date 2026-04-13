@@ -30,3 +30,8 @@ next-env.d.ts
 .heroku
 node_modules
 .next
+
+# cloudflare
+.open-next/
+.wrangler/
+.pnpm-approve-builds.json
