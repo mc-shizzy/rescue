@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'edge';
-
 // Trusted CDN domains that the proxy is allowed to redirect to
 // V3 API returns direct bcdn URLs for streaming/downloads
 const TRUSTED_DOMAINS = [
