@@ -580,12 +580,7 @@ export async function fetchSources(
     const json: APISourcesResponse = await res.json()
 
     if (json.status === "success" && json.data) {
-      const videos = (json.data.processedSources || json.data.downloads || [])
-        .sort((a, b) => {
-          const resA = "quality" in a ? a.quality : a.resolution
-          const resB = "quality" in b ? b.quality : b.resolution
-          return resB - resA // Sort by highest resolution first
-        })
+      const allSources = (json.data.processedSources || json.data.downloads || [])
         .map((source) => {
           const resolution = "quality" in source ? source.quality : source.resolution
           // V3 API returns direct bcdn CDN URLs for both streaming and download
@@ -595,13 +590,23 @@ export async function fetchSources(
             ? sourceUrl.replace(/^http:\/\//i, "https://")
             : sourceUrl
           
+          // Detect H.265/HEVC — most browsers can't decode it
+          const isH265 = directUrl.includes("/h265/")
+
           return {
             quality: `${resolution}p`,
             src: directUrl,
             downloadUrl: directUrl,
             size: source.size,
+            isH265,
           }
         })
+
+      // Prefer non-H.265 sources (browser-compatible), then sort by resolution descending
+      const videos = allSources.sort((a, b) => {
+        if (a.isH265 !== b.isH265) return a.isH265 ? 1 : -1
+        return parseInt(b.quality) - parseInt(a.quality)
+      })
 
       const processedSubs = json.data.processedSubtitles || []
       const subtitles = processedSubs.length > 0

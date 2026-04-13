@@ -111,9 +111,8 @@ export function VideoPlayer({
 
   const getDefaultQuality = useMemo(() => {
     if (sources.length === 0) return null
-    if (sources.length === 1) return sources[0]
-    const middleIndex = Math.floor(sources.length / 2)
-    return sources[middleIndex]
+    // Pick the first source (non-H.265 sources are sorted first by the API)
+    return sources[0]
   }, [sources])
 
   useEffect(() => {
@@ -173,9 +172,19 @@ export function VideoPlayer({
     const onEnded_ = () => onEnded?.()
 
     const onError = () => {
+      const err = vid.error
+      // Auto-fallback: try the next source if this one fails (e.g. H.265 unsupported)
+      const currentIndex = sources.findIndex((s) => s.src === currentUrl)
+      if (currentIndex >= 0 && currentIndex < sources.length - 1) {
+        const next = sources[currentIndex + 1]
+        console.warn(`[Player] Source failed (code ${err?.code}), falling back to ${next.quality}`)
+        setSelectedQuality(next.quality)
+        setCurrentUrl(next.src)
+        return
+      }
+
       setHasError(true)
       setIsBuffering(false)
-      const err = vid.error
       let message = "Unable to load video. Please try again or select a different quality."
       if (err) {
         if (err.code === 1) message = "Video loading was aborted. Please try again."
