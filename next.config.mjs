@@ -9,7 +9,25 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // We remove the turbopack root override as Docker handles the root automatically
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pbcdnw.aoneroom.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.aoneroom.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.hakunaymatata.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
