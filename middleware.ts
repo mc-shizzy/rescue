@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { auth } from "@/lib/auth"
+import { getToken } from "next-auth/jwt"
 
 // Routes that require authentication
 const protectedRoutes = ["/profile", "/my-list"]
 const protectedApiRoutes = ["/api/user"]
 
-export default auth((req) => {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isLoggedIn = !!req.auth
+  
+  // Get the token using Edge-compatible JWT verification
+  const token = await getToken({ 
+    req, 
+    secret: process.env.NEXTAUTH_SECRET,
+  })
+  const isLoggedIn = !!token
 
   // Check if the route requires authentication
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
@@ -35,7 +41,7 @@ export default auth((req) => {
   }
 
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [
