@@ -4,8 +4,10 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, Bookmark, Flame, Home, Sparkles, X, Smartphone, Rocket, Menu } from "lucide-react"
+import { useSession } from "next-auth/react"
+import { Search, Bookmark, Flame, Home, Sparkles, X, Smartphone, Rocket, Menu, LogIn } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { UserMenu } from "@/components/auth/user-menu"
 
 const NAV_ITEMS = [
   { label: "Home",      href: "/",          icon: Home },
@@ -87,6 +89,8 @@ export function Navbar() {
   const [scrolled, setScrolled]             = useState(false)
   const router                              = useRouter()
   const pathname                            = usePathname()
+  const { data: session, status }           = useSession()
+  const isAuthenticated                     = status === "authenticated"
 
   /* ── scroll detection ── */
   useEffect(() => {
@@ -302,11 +306,29 @@ export function Navbar() {
                 </kbd>
               </Link>
 
+              {/* Auth UI */}
+              {isAuthenticated ? (
+                <UserMenu />
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                  style={{
+                    background: "oklch(0.58 0.22 245)",
+                    color: "white",
+                    boxShadow: "0 4px 16px oklch(0.58 0.22 245 / 0.3)",
+                  }}
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </Link>
+              )}
+
               {/* Download App CTA */}
               <a
                 href="https://github.com/mc-shizzy/Apkhandy-/releases/download/3.0/HandyFlix.apk"
                 download
-                className="group relative flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-[1.03] active:scale-95 overflow-hidden"
+                className="hidden md:flex group relative items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 hover:scale-[1.03] active:scale-95 overflow-hidden"
                 style={{
                   background: "linear-gradient(135deg, oklch(0.5 0.2 245) 0%, oklch(0.42 0.2 265) 100%)",
                   color: "white",

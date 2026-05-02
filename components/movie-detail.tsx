@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import {
   Play, Plus, Check, Star, Calendar, Clock, ChevronLeft,
-  Download, Volume2, VolumeX, Loader2, X, Film, Globe,
+  Download, Volume2, VolumeX, Loader2, X, Film, Globe, Lock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { isInMyList, toggleMyList } from "@/lib/my-list"
+import { isInMyList, toggleMyList, toggleServerList } from "@/lib/my-list"
 import { VideoPlayer } from "@/components/video-player"
 import { AdBanner300x250 } from "@/components/ad-banner-300x250"
+import { useWatchProgress } from "@/hooks/use-watch-progress"
 import { fetchSources } from "@/lib/api"
 import type { NormalizedContent, NormalizedSources } from "@/lib/api"
 
@@ -20,6 +22,8 @@ interface MovieDetailProps {
 }
 
 export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
+  const { data: session } = useSession()
+  const { saveProgress, getProgress } = useWatchProgress()
   const [inMyList, setInMyList] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
   const [showPlayer, setShowPlayer] = useState(false)
@@ -29,12 +33,21 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
   const [showDownloadOptions, setShowDownloadOptions] = useState(false)
   const [sourceError, setSourceError] = useState<string | null>(null)
   const [selectedLang, setSelectedLang] = useState<"original" | "french">(frenchVersion ? "french" : "original")
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [initialProgress, setInitialProgress] = useState<number | null>(null)
 
   const activeContent = selectedLang === "french" && frenchVersion ? frenchVersion : movie
+  const isAuthenticated = !!session?.user
 
   useEffect(() => {
     setInMyList(isInMyList(movie.id))
-  }, [movie.id])
+    // If authenticated, check for saved progress
+    if (session?.user) {
+      getProgress(String(movie.id)).then((progress) => {
+        if (progress) setInitialProgress(progress)
+      })
+    }
+  }, [movie.id, session, getProgress])
 
   useEffect(() => {
     setSources(null)
@@ -45,11 +58,35 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
 
   const SMARTLINK = "https://wayanatomyunavailable.com/jii6kzj5z?key=113992b7b0e3f198a058a3cd8d7f54a4"
 
-  const handleToggleMyList = () => {
+  const handleToggleMyList = async () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
     window.open(SMARTLINK, "_blank", "noopener,noreferrer")
-    const { isInList } = toggleMyList(movie.id)
-    setInMyList(isInList)
+    if (session?.user) {
+      const result = await toggleServerList(String(movie.id))
+      setInMyList(result.isInList)
+    } else {
+      const { isInList } = toggleMyList(movie.id)
+      setInMyList(isInList)
+    }
   }
+
+  const handleTimeUpdate = useCallback((currentTime: number, duration: number) => {
+    if (!isAuthenticated) return
+    saveProgress({
+      contentId: String(movie.id),
+      contentType: "movie",
+      contentTitle: movie.title,
+      contentPoster: movie.backdrop || movie.poster,
+      season: null,
+      episode: null,
+      episodeTitle: null,
+      progressSeconds: currentTime,
+      durationSeconds: duration,
+    })
+  }, [isAuthenticated, saveProgress, movie])
 
   const handlePlay = async () => {
     setIsLoadingSources(true)
@@ -71,6 +108,10 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
   }
 
   const handleDownload = async () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
     window.open(SMARTLINK, "_blank", "noopener,noreferrer")
     if (sources?.videos?.length) { setShowDownloadOptions(true); return }
     setIsLoadingDownload(true)
@@ -379,10 +420,57 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
             sources={videoSources}
             subtitles={subtitles}
             initialDuration={activeContent.durationSeconds}
+            initialProgress={initialProgress || undefined}
             preferredSubtitleLang={selectedLang === "original" ? "fr" : undefined}
             onClose={() => setShowPlayer(false)}
+            onTimeUpdate={handleTimeUpdate}
             autoPlay
           />
+        </div>
+      )}
+
+      {/* Login Prompt Modal */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setShowLoginPrompt(false)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="relative z-10 w-full max-w-sm rounded-3xl p-6 text-center"
+            style={{
+              background: "oklch(0.12 0.03 255 / 0.95)",
+              backdropFilter: "blur(32px) saturate(180%)",
+              border: "1px solid oklch(0.7 0.05 240 / 0.18)",
+              boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.1), 0 32px 80px oklch(0 0 0 / 0.6)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="mx-auto mb-5 w-14 h-14 rounded-2xl flex items-center justify-center"
+              style={{
+                background: "oklch(0.58 0.22 245 / 0.12)",
+                border: "1px solid oklch(0.58 0.22 245 / 0.28)",
+              }}
+            >
+              <Lock className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-lg font-black mb-2">Sign In Required</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Sign in to add to your list and download content.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold glass-pill hover:border-primary/30 transition-all"
+              >
+                Cancel
+              </button>
+              <Link
+                href="/login"
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:bg-primary/90 transition-all text-center"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 

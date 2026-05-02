@@ -28,8 +28,9 @@ export interface VideoPlayerProps {
   autoPlay?: boolean
   startTime?: number
   initialDuration?: number
+  initialProgress?: number
   preferredSubtitleLang?: string
-  onTimeUpdate?: (currentTime: number) => void
+  onTimeUpdate?: (currentTime: number, duration: number) => void
   onEnded?: () => void
   nextEpisode?: { title: string; onPlay: () => void }
 }
@@ -43,11 +44,13 @@ export function VideoPlayer({
   autoPlay = true,
   startTime = 0,
   initialDuration = 0,
+  initialProgress,
   preferredSubtitleLang,
   onTimeUpdate,
   onEnded,
   nextEpisode,
 }: VideoPlayerProps) {
+  const effectiveStartTime = initialProgress || startTime
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
@@ -129,7 +132,7 @@ export function VideoPlayer({
       setIsReady(true)
       setHasError(false)
       setErrorMessage("")
-      const targetTime = seekTimeRef.current !== null ? seekTimeRef.current : startTime
+      const targetTime = seekTimeRef.current !== null ? seekTimeRef.current : effectiveStartTime
       if (targetTime > 0) {
         vid.currentTime = targetTime
         seekTimeRef.current = null
@@ -192,7 +195,7 @@ export function VideoPlayer({
       vid.removeEventListener("ended", onEnded_)
       vid.removeEventListener("error", onError)
     }
-  }, [autoPlay, startTime, onEnded])
+  }, [autoPlay, effectiveStartTime, onEnded])
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.playbackRate = playbackRate
@@ -207,7 +210,7 @@ export function VideoPlayer({
 
   useEffect(() => {
     if (duration > 0 && currentTime > 0) {
-      onTimeUpdate?.(currentTime)
+      onTimeUpdate?.(currentTime, duration)
       if (nextEpisode && currentTime / duration > 0.9) setShowNextEpisode(true)
       else setShowNextEpisode(false)
     }

@@ -7,6 +7,7 @@ import { WelcomeModal } from "@/components/welcome-modal"
 import { HeroSection } from "@/components/hero-section"
 import { GenreRail } from "@/components/genre-rail"
 import { PremiumCarousel } from "@/components/premium-carousel"
+import { ContinueWatching } from "@/components/continue-watching"
 import { Footer } from "@/components/footer"
 import { fetchTrending, fetchHomepage, type NormalizedContent } from "@/lib/api"
 
@@ -157,6 +158,9 @@ export default function HomePage() {
         <HeroSection content={heroContent} />
 
         <GenreRail selectedGenre={selectedGenre} onGenreChange={handleGenreChange} />
+
+        {/* Continue Watching - Only shows for logged in users with progress */}
+        <ContinueWatching />
 
         <div className="space-y-1 pb-10">
           {/* Top 10 - Keep trending at the top */}
