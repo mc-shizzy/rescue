@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -12,6 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
+import { AVATAR_OPTIONS } from "@/lib/avatar-options"
 
 interface ProfileClientProps {
   user: {
@@ -22,15 +22,6 @@ interface ProfileClientProps {
     accountStatus: string
   }
 }
-
-const AVATAR_OPTIONS = [
-  "https://pbcdnw.aoneroom.com/image/2024/11/13/0303c00bfa5a1a6f7fe1ecf086ca3744.jpeg",
-  "https://pbcdnw.aoneroom.com/image/2025/06/01/c7e3faab41f9623b2f566224e58e8791.jpg",
-  "https://pbcdnw.aoneroom.com/image/2025/06/01/4b17a19ed51a740aae7e22a5b2aa857d.jpg",
-  "https://pbcdnw.aoneroom.com/image/2023/03/29/e58103a58cffe2ad869f65aafc59088f.jpg",
-  "https://pbcdnw.aoneroom.com/image/2023/11/18/b073b06d98607b5c2a3975f617e3c09a.jpg",
-  "https://pbcdnw.aoneroom.com/image/2025/10/05/e65871574c98585c77e2c2672ce8e9b9.jpg",
-]
 
 export function ProfileClient({ user }: ProfileClientProps) {
   const router = useRouter()
@@ -148,7 +139,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                 style={{ boxShadow: "0 8px 32px oklch(0 0 0 / 0.4)" }}
               >
                 {selectedAvatar ? (
-                  <Image src={selectedAvatar} alt={user.name || "User"} fill className="object-cover" />
+                  <img src={selectedAvatar} alt={user.name || "User"} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-primary/20 flex items-center justify-center">
                     <User className="h-12 w-12 text-primary" />
@@ -216,7 +207,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-bold mb-4">Choose Avatar</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto p-1">
                 {AVATAR_OPTIONS.map((avatar, i) => (
                   <button
                     key={i}
@@ -227,7 +218,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                       selectedAvatar === avatar ? "ring-primary" : "ring-transparent hover:ring-primary/50"
                     )}
                   >
-                    <Image src={avatar} alt={`Avatar ${i + 1}`} fill className="object-cover" />
+                    <img src={avatar} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
                     {selectedAvatar === avatar && (
                       <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                         <Check className="h-6 w-6 text-primary" />

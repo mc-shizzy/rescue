@@ -63,7 +63,8 @@ export function RegisterForm({ callbackUrl = "/" }: RegisterFormProps) {
       if (signInResult?.error) {
         router.push("/login")
       } else {
-        router.push(callbackUrl)
+        // Redirect to onboarding to complete profile setup
+        router.push("/onboarding")
         router.refresh()
       }
     } catch {

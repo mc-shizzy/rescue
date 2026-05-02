@@ -66,16 +66,42 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
+    async signIn({ user, account }) {
+      // For OAuth sign-ins (Google), check if user needs onboarding
+      if (account?.provider === "google" && user.id) {
+        const client = await clientPromise
+        const db = client.db("handyflix")
+        const { ObjectId } = await import("mongodb")
+        const dbUser = await db.collection("users").findOne({ 
+          $or: [
+            { _id: new ObjectId(user.id) },
+            { email: user.email }
+          ]
+        })
+        
+        // If user hasn't completed onboarding, we'll let them sign in
+        // and the middleware will redirect them to onboarding
+        if (dbUser && !dbUser.onboardingCompleted) {
+          // Mark as needing onboarding (token will include this info)
+          (user as any).needsOnboarding = true
+        }
+      }
+      return true
+    },
+    async jwt({ token, user, trigger, session, account }) {
       if (user) {
         token.id = user.id
         token.accountStatus = (user as any).accountStatus || "free"
+        token.needsOnboarding = (user as any).needsOnboarding || false
       }
       
       // Handle session update (e.g., after profile change)
       if (trigger === "update" && session) {
         token.name = session.name
         token.image = session.image
+        if (session.onboardingCompleted !== undefined) {
+          token.needsOnboarding = false
+        }
       }
       
       return token
@@ -86,6 +112,13 @@ export const authConfig: NextAuthConfig = {
         session.user.accountStatus = (token.accountStatus as string) || "free"
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // If user needs onboarding, redirect to onboarding page
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
+      return baseUrl
     },
   },
   events: {
@@ -129,5 +162,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string
     accountStatus?: string
+    needsOnboarding?: boolean
   }
 }

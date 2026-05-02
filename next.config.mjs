@@ -26,6 +26,11 @@ const nextConfig = {
         hostname: '*.hakunaymatata.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
     ],
   },
 };
