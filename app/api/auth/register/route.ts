@@ -14,38 +14,60 @@ const registerSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number"),
 })
 
-// Rate limiting map (in production, use Redis)
-const rateLimitMap = new Map<string, { count: number; timestamp: number }>()
-const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute
+const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minute
 const MAX_ATTEMPTS = 5
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const record = rateLimitMap.get(ip)
-  
+async function isRateLimited(ip: string): Promise<boolean> {
+  const client = await clientPromise
+  const db = client.db("handyflix")
+  const rateLimits = db.collection("rateLimits")
+
+  const now = new Date()
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS)
+
+  // Find existing rate limit record
+  const record = await rateLimits.findOne({ ip, type: "register" })
+
   if (!record) {
-    rateLimitMap.set(ip, { count: 1, timestamp: now })
+    // First request from this IP
+    await rateLimits.insertOne({
+      ip,
+      type: "register",
+      count: 1,
+      firstAttempt: now,
+      lastAttempt: now,
+    })
     return false
   }
-  
-  if (now - record.timestamp > RATE_LIMIT_WINDOW) {
-    rateLimitMap.set(ip, { count: 1, timestamp: now })
+
+  // Check if window has expired
+  if (record.firstAttempt < windowStart) {
+    // Reset the window
+    await rateLimits.updateOne(
+      { _id: record._id },
+      { $set: { count: 1, firstAttempt: now, lastAttempt: now } }
+    )
     return false
   }
-  
+
+  // Check if limit exceeded
   if (record.count >= MAX_ATTEMPTS) {
     return true
   }
-  
-  record.count++
+
+  // Increment counter
+  await rateLimits.updateOne(
+    { _id: record._id },
+    { $inc: { count: 1 }, $set: { lastAttempt: now } }
+  )
   return false
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const ip = request.headers.get("x-forwarded-for") || "unknown"
-    if (isRateLimited(ip)) {
+    // Rate limiting (uses MongoDB for persistence across serverless instances)
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+    if (await isRateLimited(ip)) {
       return NextResponse.json(
         { error: "Too many attempts. Please try again later." },
         { status: 429 }

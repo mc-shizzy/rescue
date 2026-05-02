@@ -34,3 +34,22 @@ export async function getDatabase(dbName: string = "handyflix") {
   const client = await clientPromise
   return client.db(dbName)
 }
+
+// Initialize database indexes (call once on startup or via a setup script)
+export async function initializeIndexes() {
+  const client = await clientPromise
+  const db = client.db("handyflix")
+
+  // Create TTL index on rateLimits to auto-delete records after 5 minutes
+  // This prevents unbounded growth of the rate limiting collection
+  await db.collection("rateLimits").createIndex(
+    { lastAttempt: 1 },
+    { expireAfterSeconds: 300 } // 5 minutes
+  )
+
+  // Create unique compound index for efficient rate limit lookups
+  await db.collection("rateLimits").createIndex(
+    { ip: 1, type: 1 },
+    { unique: true }
+  )
+}

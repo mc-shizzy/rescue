@@ -44,7 +44,7 @@ export function MovieDetail({ movie, frenchVersion }: MovieDetailProps) {
     // If authenticated, check for saved progress
     if (session?.user) {
       getProgress(String(movie.id)).then((progress) => {
-        if (progress) setInitialProgress(progress)
+        if (progress !== null) setInitialProgress(progress)
       })
     }
   }, [movie.id, session, getProgress])
