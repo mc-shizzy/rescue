@@ -5,12 +5,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {
-    root: __dirname,
-  },
+  output: 'standalone', // <--- IMPORTANT: This is required for Docker
   typescript: {
     ignoreBuildErrors: true,
   },
+  // We remove the turbopack root override as Docker handles the root automatically
 };
 
 export default nextConfig;
