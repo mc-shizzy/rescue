@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Play, Info, Star, Loader2 } from "lucide-react"
+import { Play, Info, Star, Loader2, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { NormalizedContent } from "@/lib/api"
 
@@ -45,15 +45,29 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
     [currentIndex, featuredContent.length, goTo],
   )
 
+  const [progress, setProgress] = useState(0)
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [muted, setMuted] = useState(true)
+
   const startAutoplay = useCallback(() => {
     if (autoplayRef.current) clearInterval(autoplayRef.current)
+    if (progressRef.current) clearInterval(progressRef.current)
+    setProgress(0)
     autoplayRef.current = setInterval(goNext, 8000)
+    let p = 0
+    progressRef.current = setInterval(() => {
+      p += 100 / 80
+      setProgress(Math.min(p, 100))
+    }, 100)
   }, [goNext])
 
   useEffect(() => {
     if (featuredContent.length === 0) return
     startAutoplay()
-    return () => { if (autoplayRef.current) clearInterval(autoplayRef.current) }
+    return () => {
+      if (autoplayRef.current) clearInterval(autoplayRef.current)
+      if (progressRef.current) clearInterval(progressRef.current)
+    }
   }, [featuredContent.length, startAutoplay])
 
   // Touch / mouse swipe
@@ -78,7 +92,7 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
           style={{ borderRadius: "1.5rem" }}
         >
           {/* Loading placeholder */}
-          <div className="relative h-[320px] sm:h-[360px] md:h-[410px] bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center">
+          <div className="relative h-[380px] sm:h-[440px] md:h-[520px] bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="text-sm font-medium">Loading content...</span>
@@ -98,7 +112,7 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
       <div
         ref={containerRef}
         className="relative mx-auto max-w-[1320px] overflow-hidden select-none"
-        style={{ borderRadius: "1.5rem", cursor: "grab" }}
+        style={{ borderRadius: "1.5rem", cursor: "grab", boxShadow: "0 32px 80px oklch(0 0 0 / 0.6), 0 0 0 1px oklch(0.7 0.05 240 / 0.08)" }}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
         onPointerLeave={(e) => { if (dragStartX !== null) handlePointerUp(e) }}
@@ -121,13 +135,11 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
           />
         </div>
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/55 to-black/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "linear-gradient(135deg, oklch(0.3 0.12 250 / 0.14) 0%, transparent 55%)" }}
-        />
+        {/* Gradient overlays — richer layering */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/60 to-black/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, oklch(0.28 0.14 250 / 0.22) 0%, transparent 50%)" }} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, oklch(0.07 0.02 260) 0%, transparent 30%)" }} />
 
         {/* Inner border shine */}
         <div
@@ -139,11 +151,11 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
         />
 
         {/* Main content */}
-        <div className="relative z-10 h-[320px] sm:h-[360px] md:h-[410px] flex items-end pb-8 px-6 sm:px-10">
+        <div className="relative z-10 h-[380px] sm:h-[440px] md:h-[520px] flex items-end pb-10 px-6 sm:px-12">
           <div
             className={cn(
-              "max-w-lg space-y-3 transition-all duration-500 ease-out",
-              isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0",
+              "max-w-xl space-y-4 transition-all duration-500 ease-out",
+              isTransitioning ? "opacity-0 translate-y-5" : "opacity-100 translate-y-0",
             )}
           >
             {/* Type + rating badges */}
@@ -163,7 +175,7 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl md:text-[2.25rem] font-black tracking-tight text-balance leading-tight drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-balance leading-[1.08] drop-shadow-2xl">
               {currentItem.title}
             </h1>
 
@@ -172,41 +184,72 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
               {currentItem.genre.slice(0, 3).map((g) => (
                 <span
                   key={g}
-                  className="px-2.5 py-0.5 rounded-full text-[11px] text-white/55"
-                  style={{ background: "oklch(1 0 0 / 0.06)", border: "1px solid oklch(1 0 0 / 0.09)" }}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold text-white/70"
+                  style={{ background: "oklch(1 0 0 / 0.08)", border: "1px solid oklch(1 0 0 / 0.12)" }}
                 >
                   {g}
                 </span>
               ))}
             </div>
 
+            {/* Description */}
+            {currentItem.description && (
+              <p className="text-sm text-white/60 leading-relaxed line-clamp-2 max-w-md hidden sm:block">
+                {currentItem.description}
+              </p>
+            )}
+
             {/* CTA Buttons */}
-            <div className="flex items-center gap-2.5 pt-1">
+            <div className="flex items-center gap-3 pt-1">
               <Link href={detailUrl} draggable={false}>
-                <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-foreground text-background font-bold text-sm hover:bg-foreground/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-xl shadow-black/40">
-                  <Play className="h-3.5 w-3.5 fill-current" />
+                <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white text-black font-black text-sm hover:bg-white/90 hover:scale-105 active:scale-95 transition-all duration-200 shadow-xl shadow-black/50">
+                  <Play className="h-4 w-4 fill-black" />
                   Play Now
                 </button>
               </Link>
               <Link href={detailUrl} draggable={false}>
                 <button
-                  className="flex items-center gap-2 px-5 py-2 rounded-xl font-semibold text-sm hover:scale-105 active:scale-95 transition-all duration-200"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-all duration-200 text-white/90"
                   style={{
-                    background: "oklch(0.15 0.04 255 / 0.65)",
-                    backdropFilter: "blur(16px)",
-                    border: "1px solid oklch(0.7 0.05 240 / 0.2)",
+                    background: "oklch(0.15 0.04 255 / 0.6)",
+                    backdropFilter: "blur(20px)",
+                    border: "1px solid oklch(0.7 0.05 240 / 0.22)",
+                    boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.08)",
                   }}
                 >
-                  <Info className="h-3.5 w-3.5" />
+                  <Info className="h-4 w-4" />
                   Details
                 </button>
               </Link>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMuted(v => !v) }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all duration-200 hover:scale-110"
+                style={{ background: "oklch(0.15 0.04 255 / 0.5)", backdropFilter: "blur(16px)", border: "1px solid oklch(0.7 0.05 240 / 0.18)" }}
+                aria-label={muted ? "Unmute" : "Mute"}
+              >
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Progress dots — bottom right, minimal */}
-        <div className="absolute bottom-4 right-5 z-20 flex items-center gap-1.5">
+        {/* Autoplay progress bar */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 h-[2px]" style={{ background: "oklch(1 0 0 / 0.06)" }}>
+          <div
+            className="h-full transition-none"
+            style={{ width: `${progress}%`, background: "linear-gradient(90deg, oklch(0.58 0.22 245), oklch(0.7 0.18 210))" }}
+          />
+        </div>
+
+        {/* Slide counter — bottom right */}
+        <div className="absolute bottom-5 right-5 z-20 flex items-center gap-3">
+          <span className="text-[11px] font-bold text-white/40 font-mono tabular-nums">
+            {String(currentIndex + 1).padStart(2, "0")} / {String(featuredContent.length).padStart(2, "0")}
+          </span>
+        </div>
+
+        {/* Progress dots — bottom center */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
           {featuredContent.map((_, index) => (
             <button
               key={index}
@@ -223,7 +266,7 @@ export const HeroSection = memo(function HeroSection({ content }: HeroSectionPro
         </div>
 
         {/* Poster thumbnails — right side, desktop only */}
-        <div className="absolute right-5 top-1/2 -translate-y-1/2 z-20 hidden lg:flex flex-col gap-2">
+        <div className="absolute right-5 top-1/2 -translate-y-1/2 z-20 hidden lg:flex flex-col gap-2.5">
           {featuredContent.map((item, index) => (
             <button
               key={item.id}

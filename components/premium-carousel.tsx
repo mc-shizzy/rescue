@@ -4,7 +4,7 @@ import type React from "react"
 import { useRef, useState, useEffect, memo, useCallback } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, Play, Plus, Check } from "lucide-react"
+import { ChevronLeft, ChevronRight, Play, Plus, Check, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { isInMyList, toggleMyList } from "@/lib/my-list"
 import type { NormalizedContent } from "@/lib/api"
@@ -52,18 +52,21 @@ export const PremiumCarousel = memo(function PremiumCarousel({
   if (items.length === 0) return null
 
   return (
-    <section id={id} className="py-5">
+    <section id={id} className="py-5 group/section">
       <ContentPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
       <div className="mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-12">
         {/* Section header */}
-        <div className="flex items-center gap-3 mb-4">
-          <div>
-            <h2 className="text-sm font-bold text-foreground tracking-wide flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors duration-200">
+        <div className="flex items-center justify-between mb-5">
+          <div className="group cursor-pointer">
+            <h2 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2 transition-colors duration-200 hover:text-primary"
+              style={{ background: "linear-gradient(135deg, oklch(0.97 0.005 240) 0%, oklch(0.78 0.06 240) 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
               {title}
-              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-200" />
             </h2>
-            <div className="section-title-line w-12 mt-1 transition-all duration-300 group-hover:w-20" />
+            <div className="section-title-line w-10 mt-1.5 group-hover:w-24 transition-all duration-500" />
           </div>
+          <button className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors duration-200 opacity-0 group-hover/section:opacity-100">
+            See all <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         </div>
 
         {/* Carousel */}
@@ -168,15 +171,16 @@ const ContentCard = memo(function ContentCard({
           <span
             className="text-[80px] sm:text-[100px] font-black leading-none select-none"
             style={{
-              WebkitTextStroke: "2px oklch(0.58 0.22 245 / 0.2)",
+              WebkitTextStroke: "2px oklch(0.58 0.22 245 / 0.25)",
               color: "transparent",
-              marginRight: "-20px",
+              marginRight: "-18px",
               zIndex: 0,
+              textShadow: "0 0 40px oklch(0.58 0.22 245 / 0.12)",
             }}
           >
             {index + 1}
           </span>
-          <div className="relative w-[75px] sm:w-[90px] aspect-[2/3] rounded-xl overflow-hidden z-10 card-hover ring-1 ring-white/[0.08]">
+          <div className="relative w-[80px] sm:w-[100px] aspect-[2/3] rounded-xl overflow-hidden z-10 card-hover ring-1 ring-white/[0.08]">
             <Image
               src={item.poster || "/placeholder.svg"}
               alt={item.title}
@@ -264,15 +268,16 @@ const ContentCard = memo(function ContentCard({
           </div>
 
           {/* Info */}
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-green-400 text-[10px] font-semibold">98%</span>
-              <span className="glass-pill px-1 py-0.5 rounded text-[8px] text-muted-foreground">HD</span>
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-yellow-300 text-[10px] font-bold">{item.rating?.toFixed(1) || "8.5"}</span>
+              <span className="glass-pill px-1.5 py-0.5 rounded text-[8px] text-muted-foreground font-semibold">HD</span>
             </div>
-            <div className="flex items-center gap-1 text-[10px] text-white/70 flex-wrap">
+            <div className="flex items-center gap-1 text-[10px] text-white/60 flex-wrap">
               {item.genre.slice(0, 2).map((g, i) => (
                 <span key={g} className="flex items-center gap-1">
-                  {i > 0 && <span className="w-0.5 h-0.5 bg-white/40 rounded-full" />}
+                  {i > 0 && <span className="w-0.5 h-0.5 bg-white/30 rounded-full" />}
                   {g}
                 </span>
               ))}
@@ -282,7 +287,7 @@ const ContentCard = memo(function ContentCard({
       </div>
 
       {/* Title */}
-      <h3 className="mt-2 text-xs font-medium truncate text-muted-foreground group-hover/card:text-foreground transition-colors duration-200">
+      <h3 className="mt-2.5 text-xs font-semibold truncate text-muted-foreground group-hover/card:text-white transition-colors duration-200">
         {item.title}
       </h3>
     </div>
