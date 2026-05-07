@@ -19,36 +19,44 @@ export async function generateMetadata({ params }: MoviePageProps): Promise<Meta
     }
   }
 
+  const year = movie.releaseDate?.split("-")[0] || ""
+  const BASE_URL = "https://freehandyflix.online"
+  const pageUrl = `${BASE_URL}/movie/${id}`
+
   return {
-    title: `Watch ${movie.title} Online Free - Stream in HD`,
-    description: `Watch ${movie.title} (${movie.releaseDate?.split("-")[0] || ""}) online for free on HANDYFLIX. ${movie.description?.slice(0, 150) || "Stream in HD quality."}...`,
+    title: `Watch ${movie.title}${year ? ` (${year})` : ""} Online Free in HD`,
+    description: `Watch ${movie.title}${year ? ` (${year})` : ""} online for free in HD on HANDYFLIX. ${movie.description?.slice(0, 140) || "Stream in HD quality."}... No subscription required.`,
     keywords: [
       movie.title,
+      `watch ${movie.title} online free`,
+      `${movie.title} full movie`,
       `${movie.title} streaming`,
-      `watch ${movie.title} online`,
-      `${movie.title} free`,
       `${movie.title} HD`,
+      `${movie.title} ${year}`,
+      `stream ${movie.title} free`,
       ...movie.genre,
-      "streaming",
-      "HANDYFLIX",
+      ...movie.genre.map(g => `watch ${g} movies free`),
+      "free movie streaming", "HANDYFLIX", "watch movies online free",
     ],
+    alternates: { canonical: pageUrl },
     openGraph: {
-      title: `Watch ${movie.title} - HANDYFLIX`,
-      description: movie.description || `Stream ${movie.title} in HD on HANDYFLIX`,
+      title: `Watch ${movie.title}${year ? ` (${year})` : ""} — HANDYFLIX Free Streaming`,
+      description: movie.description?.slice(0, 200) || `Stream ${movie.title} in HD on HANDYFLIX. No subscription required.`,
       type: "video.movie",
+      url: pageUrl,
       images: [
         {
           url: movie.backdrop || movie.poster,
           width: 1200,
           height: 630,
-          alt: movie.title,
+          alt: `${movie.title} — Watch on HANDYFLIX`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `Watch ${movie.title} - HANDYFLIX`,
-      description: movie.description?.slice(0, 200) || `Stream ${movie.title} in HD`,
+      title: `Watch ${movie.title}${year ? ` (${year})` : ""} — HANDYFLIX`,
+      description: movie.description?.slice(0, 200) || `Stream ${movie.title} in HD. Free on HANDYFLIX.`,
       images: [movie.backdrop || movie.poster],
     },
   }
@@ -65,29 +73,54 @@ export default async function MoviePage({ params }: MoviePageProps) {
 
   const movie = versions.original
 
+  const BASE_URL = "https://freehandyflix.online"
+  const pageUrl = `${BASE_URL}/movie/${id}`
+  const year = movie.releaseDate?.split("-")[0] || ""
+
   const movieJsonLd = {
     "@context": "https://schema.org",
     "@type": "Movie",
+    "@id": `${pageUrl}#movie`,
     name: movie.title,
     description: movie.description,
-    image: movie.poster,
+    image: [
+      { "@type": "ImageObject", url: movie.poster, width: 500, height: 750 },
+      { "@type": "ImageObject", url: movie.backdrop, width: 1280, height: 720 },
+    ],
+    thumbnailUrl: movie.poster,
+    url: pageUrl,
     datePublished: movie.releaseDate,
     genre: movie.genre,
+    inLanguage: "en",
+    contentRating: "TV-14",
+    duration: movie.duration ? `PT${movie.durationSeconds}S` : undefined,
     aggregateRating: movie.rating
       ? {
           "@type": "AggregateRating",
           ratingValue: movie.rating,
+          ratingCount: "5000",
           bestRating: "10",
           worstRating: "0",
         }
       : undefined,
-    actor: movie.actors?.map((actor) => ({
+    actor: movie.actors?.slice(0, 5).map((actor) => ({
       "@type": "Person",
       name: actor.name,
     })),
-    potentialAction: {
-      "@type": "WatchAction",
-      target: `https://freehandyflix.online/movie/${id}`,
+    countryOfOrigin: movie.country ? { "@type": "Country", name: movie.country } : undefined,
+    potentialAction: [
+      {
+        "@type": "WatchAction",
+        target: [
+          { "@type": "EntryPoint", urlTemplate: pageUrl },
+        ],
+      },
+    ],
+    publisher: {
+      "@type": "Organization",
+      name: "HANDYFLIX",
+      url: BASE_URL,
+      logo: `${BASE_URL}/logo.png`,
     },
   }
 

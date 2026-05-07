@@ -1,22 +1,52 @@
 import type { MetadataRoute } from "next"
 
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = "https://freehandyflix.online"
+const BASE_URL = "https://freehandyflix.online"
 
+export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/api/", "/my-list"],
+        userAgent: "Googlebot",
+        allow: ["/", "/search", "/movie/", "/series/", "/terms"],
+        disallow: ["/api/", "/admin/", "/onboarding/", "/profile/"],
       },
       {
-        userAgent: "Googlebot",
-        allow: "/",
-        disallow: ["/api/"],
+        userAgent: "Bingbot",
+        allow: ["/", "/search", "/movie/", "/series/", "/terms"],
+        disallow: ["/api/", "/admin/", "/onboarding/", "/profile/"],
+      },
+      {
+        userAgent: "DuckDuckBot",
+        allow: ["/", "/search", "/movie/", "/series/"],
+        disallow: ["/api/", "/admin/", "/onboarding/", "/profile/"],
+      },
+      {
+        userAgent: "Slurp",
+        allow: ["/", "/search", "/movie/", "/series/"],
+        disallow: ["/api/", "/admin/", "/onboarding/", "/profile/"],
+      },
+      {
+        userAgent: "facebookexternalhit",
+        allow: ["/", "/movie/", "/series/"],
+        disallow: ["/api/", "/admin/"],
+      },
+      {
+        userAgent: "Twitterbot",
+        allow: ["/", "/movie/", "/series/"],
+        disallow: ["/api/", "/admin/"],
+      },
+      {
+        userAgent: "LinkedInBot",
+        allow: ["/", "/movie/", "/series/"],
+        disallow: ["/api/", "/admin/"],
+      },
+      {
+        userAgent: "*",
+        allow: ["/", "/search", "/movie/", "/series/", "/terms", "/login", "/register"],
+        disallow: ["/api/", "/admin/", "/onboarding/", "/profile/", "/my-list/"],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    sitemap: `${BASE_URL}/sitemap.xml`,
+    host: BASE_URL,
   }
 }
