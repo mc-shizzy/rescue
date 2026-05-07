@@ -125,6 +125,7 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.accountStatus = (token.accountStatus as string) || "free"
+        if (token.email) session.user.email = token.email as string
         if (token.name) session.user.name = token.name as string
         if (token.picture) session.user.image = token.picture as string
       }
