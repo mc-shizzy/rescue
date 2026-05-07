@@ -95,11 +95,26 @@ export const authConfig: NextAuthConfig = {
         token.needsOnboarding = (user as any).needsOnboarding || false
       }
       
-      // Handle session update (e.g., after profile change)
+      // Re-check onboarding status from DB on every sign-in for Google users
+      if (account?.provider === "google" && token.id) {
+        try {
+          const client = await clientPromise
+          const db = client.db("handyflix")
+          const { ObjectId } = await import("mongodb")
+          const dbUser = await db.collection("users").findOne({ _id: new ObjectId(token.id as string) })
+          if (dbUser) {
+            token.needsOnboarding = !dbUser.onboardingCompleted
+            token.name = dbUser.name || token.name
+            token.picture = dbUser.image || token.picture
+          }
+        } catch {}
+      }
+      
+      // Handle session update (e.g., after profile change or onboarding)
       if (trigger === "update" && session) {
-        token.name = session.name
-        token.image = session.image
-        if (session.onboardingCompleted !== undefined) {
+        if (session.name) token.name = session.name
+        if (session.image) token.picture = session.image
+        if (session.onboardingCompleted) {
           token.needsOnboarding = false
         }
       }
@@ -110,13 +125,19 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.accountStatus = (token.accountStatus as string) || "free"
+        if (token.name) session.user.name = token.name as string
+        if (token.picture) session.user.image = token.picture as string
       }
       return session
     },
     async redirect({ url, baseUrl }) {
-      // If user needs onboarding, redirect to onboarding page
+      // If the URL is already an absolute URL within this app, allow it
       if (url.startsWith(baseUrl)) {
         return url
+      }
+      // Handle relative URLs
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`
       }
       return baseUrl
     },

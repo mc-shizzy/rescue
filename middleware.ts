@@ -31,6 +31,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  // Redirect users who haven't completed onboarding to /onboarding
+  if (isLoggedIn && token?.needsOnboarding && !isOnboardingPage) {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin))
+  }
+
   // Redirect unauthenticated users from protected routes to login
   if (isProtectedRoute && !isLoggedIn) {
     const loginUrl = new URL("/login", req.nextUrl.origin)
@@ -48,10 +53,6 @@ export async function middleware(req: NextRequest) {
 
   // Redirect logged-in users away from auth pages
   if ((pathname === "/login" || pathname === "/register") && isLoggedIn) {
-    // Check if user needs onboarding (needsOnboarding flag in token)
-    if (token.needsOnboarding) {
-      return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin))
-    }
     return NextResponse.redirect(new URL("/", req.nextUrl.origin))
   }
 
@@ -66,6 +67,11 @@ export const config = {
     "/login",
     "/register",
     "/onboarding",
+    // Match homepage and content pages so needsOnboarding redirect fires after Google OAuth
+    "/",
+    "/movie/:path*",
+    "/series/:path*",
+    "/search",
     // Match protected API routes
     "/api/user/:path*",
   ],

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { User, Check, Loader2, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AVATAR_OPTIONS } from "@/lib/avatar-options"
@@ -14,6 +15,7 @@ interface OnboardingClientProps {
 
 export function OnboardingClient({ userId, defaultName, defaultImage }: OnboardingClientProps) {
   const router = useRouter()
+  const { update: updateSession } = useSession()
   const [name, setName] = useState(defaultName)
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(defaultImage)
   const [isLoading, setIsLoading] = useState(false)
@@ -46,6 +48,9 @@ export function OnboardingClient({ userId, defaultName, defaultImage }: Onboardi
         const data = await res.json()
         throw new Error(data.error || "Failed to complete setup")
       }
+
+      // Update the JWT session so the new name/avatar appear immediately in the navbar
+      await updateSession({ name: name.trim(), image: selectedAvatar, onboardingCompleted: true })
 
       router.push("/")
       router.refresh()
