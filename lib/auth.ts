@@ -68,23 +68,20 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async signIn({ user, account }) {
       // For OAuth sign-ins (Google), check if user needs onboarding
-      if (account?.provider === "google" && user.id) {
-        const client = await clientPromise
-        const db = client.db("handyflix")
-        const { ObjectId } = await import("mongodb")
-        const dbUser = await db.collection("users").findOne({ 
-          $or: [
-            { _id: new ObjectId(user.id) },
-            { email: user.email }
-          ]
-        })
-        
-        // If user hasn't completed onboarding, we'll let them sign in
-        // and the middleware will redirect them to onboarding
-        if (dbUser && !dbUser.onboardingCompleted) {
-          // Mark as needing onboarding (token will include this info)
-          (user as any).needsOnboarding = true
-        }
+      if (account?.provider === "google") {
+        try {
+          const client = await clientPromise
+          const db = client.db("handyflix")
+          const { ObjectId } = await import("mongodb")
+          const isValidObjectId = /^[a-f\d]{24}$/i.test(user.id || "")
+          const query = isValidObjectId
+            ? { $or: [{ _id: new ObjectId(user.id!) }, { email: user.email }] }
+            : { email: user.email }
+          const dbUser = await db.collection("users").findOne(query)
+          if (dbUser && !dbUser.onboardingCompleted) {
+            (user as any).needsOnboarding = true
+          }
+        } catch {}
       }
       return true
     },
@@ -96,7 +93,7 @@ export const authConfig: NextAuthConfig = {
       }
       
       // Re-check onboarding status from DB on every sign-in for Google users
-      if (account?.provider === "google" && token.id) {
+      if (account?.provider === "google" && token.id && /^[a-f\d]{24}$/i.test(token.id as string)) {
         try {
           const client = await clientPromise
           const db = client.db("handyflix")
