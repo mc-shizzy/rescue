@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 // Routes that require authentication
-const protectedRoutes = ["/profile", "/my-list"]
+const protectedRoutes = ["/profile", "/my-list", "/admin"]
 const protectedApiRoutes = ["/api/user"]
 
 export async function middleware(req: NextRequest) {
@@ -67,6 +67,8 @@ export const config = {
     "/login",
     "/register",
     "/onboarding",
+    // Admin
+    "/admin/:path*",
     // Match homepage and content pages so needsOnboarding redirect fires after Google OAuth
     "/",
     "/movie/:path*",

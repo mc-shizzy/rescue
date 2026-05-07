@@ -40,16 +40,22 @@ export async function initializeIndexes() {
   const client = await clientPromise
   const db = client.db("handyflix")
 
-  // Create TTL index on rateLimits to auto-delete records after 5 minutes
-  // This prevents unbounded growth of the rate limiting collection
+  // TTL index on rateLimits — auto-delete records after 5 minutes
   await db.collection("rateLimits").createIndex(
     { lastAttempt: 1 },
-    { expireAfterSeconds: 300 } // 5 minutes
+    { expireAfterSeconds: 300 }
   )
 
-  // Create unique compound index for efficient rate limit lookups
+  // Unique compound index for efficient rate limit lookups
   await db.collection("rateLimits").createIndex(
     { ip: 1, type: 1 },
     { unique: true }
+  )
+
+  // TTL index on watchProgress — auto-delete history older than 14 days
+  // lastWatched is updated on every save, so the 14-day window resets each time the user watches
+  await db.collection("watchprogresses").createIndex(
+    { lastWatched: 1 },
+    { expireAfterSeconds: 14 * 24 * 60 * 60 }
   )
 }

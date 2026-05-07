@@ -89,6 +89,9 @@ WatchProgressSchema.index({ userId: 1, contentId: 1, season: 1, episode: 1 }, { 
 WatchProgressSchema.index({ userId: 1, lastWatched: -1 })
 WatchProgressSchema.index({ userId: 1, completed: 1 })
 
+// TTL index: auto-delete watch history older than 14 days
+WatchProgressSchema.index({ lastWatched: 1 }, { expireAfterSeconds: 14 * 24 * 60 * 60 })
+
 // Prevent model recompilation in development
 const WatchProgress: Model<IWatchProgress> =
   mongoose.models.WatchProgress || mongoose.model<IWatchProgress>("WatchProgress", WatchProgressSchema)

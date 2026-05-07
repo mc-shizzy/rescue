@@ -22,6 +22,7 @@ export async function GET() {
       indexes: [
         "rateLimits: TTL index on lastAttempt (5 min expiry)",
         "rateLimits: unique compound index on ip + type",
+        "watchprogresses: TTL index on lastWatched (14 day expiry)",
       ],
     })
   } catch (error) {
