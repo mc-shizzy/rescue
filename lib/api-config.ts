@@ -1,5 +1,5 @@
 // API Configuration - Change this URL when the backend domain changes
-export const API_BASE_URL = "https://freehandyflix.online/api"
+export const API_BASE_URL = "https://apii.freehandyflix.online/api"
 
 // API Endpoints
 export const API_ENDPOINTS = {
